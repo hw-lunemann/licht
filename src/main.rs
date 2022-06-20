@@ -1,3 +1,4 @@
+use anyhow::Context;
 use clap::Parser;
 use std::path::{Path, PathBuf};
 
@@ -13,13 +14,15 @@ struct Cli {
 
 fn read_to_f32(path: &Path) -> anyhow::Result<f32> {
     let text = std::fs::read_to_string(&path)?;
-    let value = text.replace('\n', "").parse()?;
-    Ok(value)
+    text.replace('\n', "").parse().context("parse failure")
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-
+    
+    if !cli.path.starts_with("/sys/class/backlight/") {
+        anyhow::bail!("input had to be from the backlight device class in sysfs.")
+    }
 
 
     let factor = match cli.action {
@@ -31,6 +34,6 @@ fn main() -> anyhow::Result<()> {
     let brightness = read_to_f32(brightness_file)?;
     let max_brightness = read_to_f32(&cli.path.join("max_brightness"))?;
     let min = max_brightness.min(brightness * factor) as usize;
-    std::fs::write(brightness_file, min.to_string().as_bytes())?;
-    Ok(())
+
+    std::fs::write(brightness_file, min.to_string().as_bytes()).context("writing brightness failed")
 }
