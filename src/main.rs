@@ -11,14 +11,17 @@ struct Cli {
     step: usize,
 }
 
-fn read_to_f32(path: &Path) -> Result<f32, Box<dyn std::error::Error>> {
+fn read_to_f32(path: &Path) -> anyhow::Result<f32> {
     let text = std::fs::read_to_string(&path)?;
     let value = text.replace('\n', "").parse()?;
     Ok(value)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+
+
     let factor = match cli.action {
         '-' => 1.0 - cli.step as f32 / 100.0,
         '+' => 1.0 + cli.step as f32 / 100.0,
