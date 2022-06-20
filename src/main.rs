@@ -1,5 +1,5 @@
 use anyhow::Context;
-use clap::{Parser, ValueEnum, PossibleValue};
+use clap::{Parser, PossibleValue, ValueEnum};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -10,18 +10,22 @@ struct Cli {
     action: Action,
     #[clap(value_parser, display_order = 2)]
     step: usize,
-    #[clap(value_enum, long, default_value("relative"))]
-    mode: Mode
+    #[clap(value_enum, long, default_value("max-relative"))]
+    mode: Mode,
 }
 
 #[derive(clap::ValueEnum, Clone)]
 enum Mode {
-    CurrentRelative, MaxRelative
+    Absolute,
+    CurrentRelative,
+    MaxRelative,
+    MaxRelativeQuadratic,
 }
 
 #[derive(Clone)]
 enum Action {
-    Plus, Minus
+    Plus,
+    Minus,
 }
 
 impl ValueEnum for Action {
@@ -39,25 +43,36 @@ impl ValueEnum for Action {
 
 fn calculate_brightness(action: Action, step: usize, mode: Mode, current: f32, max: f32) -> f32 {
     match mode {
+        Mode::Absolute => match action {
+            Action::Plus => current + step as f32,
+            Action::Minus => current - step as f32,
+        },
         Mode::CurrentRelative => {
             let step = step as f32 / 100.0f32;
             let diff = current * step;
             match action {
                 Action::Plus => current + diff,
-                Action::Minus => current - diff
+                Action::Minus => current - diff,
             }
-        },
-        Mode::MaxRelative => { 
+        }
+        Mode::MaxRelative => {
             let step = step as f32 / 100.0f32;
             let diff = max * step;
             match action {
                 Action::Plus => current + diff,
-                Action::Minus => current - diff
+                Action::Minus => current - diff,
             }
-        },
+        }
+        Mode::MaxRelativeQuadratic => {
+            let cur_x = (current / max).sqrt();
+            let new_x = match action {
+                Action::Plus => cur_x + (step as f32 / 100.0f32),
+                Action::Minus => cur_x - (step as f32 / 100.0f32),
+            };
+            max * new_x.powi(2)
+        }
     }
 }
-
 
 fn read_to_f32(path: &Path) -> anyhow::Result<f32> {
     let text = std::fs::read_to_string(&path)?;
@@ -66,17 +81,18 @@ fn read_to_f32(path: &Path) -> anyhow::Result<f32> {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    
+
     if !cli.path.starts_with("/sys/class/backlight/") {
         anyhow::bail!("input had to be from the backlight device class in sysfs.")
     }
 
-
     let brightness_file = &cli.path.join("brightness");
     let brightness = read_to_f32(brightness_file)?;
     let max_brightness = read_to_f32(&cli.path.join("max_brightness"))?;
-    let new_brigtness = calculate_brightness(cli.action, cli.step, cli.mode, brightness, max_brightness)
-        .min(max_brightness);
+    let new_brightness =
+        calculate_brightness(cli.action, cli.step, cli.mode, brightness, max_brightness)
+            .min(max_brightness) as usize;
 
-    std::fs::write(brightness_file, new_brigtness.to_string().as_bytes()).context("writing brightness failed")
+    std::fs::write(brightness_file, new_brightness.to_string().as_bytes())
+        .context("writing brightness failed")
 }
