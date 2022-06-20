@@ -12,6 +12,8 @@ struct Cli {
     step: usize,
     #[clap(value_enum, long, default_value("max-relative"))]
     mode: Mode,
+    #[clap(value_parser, long)]
+    verbose: bool
 }
 
 #[derive(clap::ValueEnum, Clone)]
@@ -91,8 +93,11 @@ fn main() -> anyhow::Result<()> {
     let max_brightness = read_to_f32(&cli.path.join("max_brightness"))?;
     let new_brightness =
         calculate_brightness(cli.action, cli.step, cli.mode, brightness, max_brightness)
-            .min(max_brightness) as usize;
+            .min(max_brightness);
 
-    std::fs::write(brightness_file, new_brightness.to_string().as_bytes())
+    if cli.verbose {
+        println!("{} -> {}", brightness/max_brightness, new_brightness/max_brightness);
+    }
+    std::fs::write(brightness_file, (new_brightness as usize).to_string().as_bytes())
         .context("writing brightness failed")
 }
