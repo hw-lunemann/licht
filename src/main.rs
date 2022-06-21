@@ -94,7 +94,7 @@ impl Backlight {
             }
         };
 
-        self.brightness = self.max_brightness.min(new_brightness as usize);
+        self.brightness = self.max_brightness.min((new_brightness + 0.5f32)as usize);
 
         std::fs::write(&self.brightness_path, &self.brightness.to_string().as_bytes())
             .context("writing brightness failed")
