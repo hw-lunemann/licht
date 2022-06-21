@@ -6,10 +6,8 @@ use std::path::{Path, PathBuf};
 struct Cli {
     #[clap(value_parser, display_order = 0)]
     device: String,
-    #[clap(value_enum, display_order = 1)]
-    action: Action,
-    #[clap(value_parser, display_order = 2)]
-    step: usize,
+    #[clap(value_parser, allow_hyphen_values(true), display_order = 1)]
+    step: i32,
     #[clap(value_enum, long, default_value("parabolic"))]
     stepping: Stepping,
     #[clap(value_parser, long, default_value("2"))]
@@ -82,33 +80,21 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
-    fn change_brightness(&mut self, action: Action, step: usize, stepping: Stepping) -> anyhow::Result<()> {
-        let brigthness = self.brightness as f32;
-        let max_brightness = self.max_brightness as f32;
+    fn change_brightness(&mut self, step: i32, stepping: Stepping) -> anyhow::Result<()> {
         let new_brightness = match stepping {
-            Stepping::Absolute => match action {
-                Action::Plus => brigthness + step as f32,
-                Action::Minus => brigthness - step as f32,
-            },
+            Stepping::Absolute => self.brightness as f32 + step as f32,
             Stepping::CurrentRelative => {
                 let step = step as f32 / 100.0f32;
-                let diff = brigthness * step;
-                match action {
-                    Action::Plus => brigthness + diff,
-                    Action::Minus => brigthness - diff,
-                }
+                self.brightness as f32 + self.brightness as f32 * step
             }
             Stepping::Parabolic { exponent } => {
-                let cur_x = (brigthness / max_brightness).powf(1.0f32/exponent);
-                let new_x = match action {
-                    Action::Plus => cur_x + (step as f32 / 100.0f32),
-                    Action::Minus => cur_x - (step as f32 / 100.0f32),
-                };
-                max_brightness * new_x.powf(exponent)
+                let cur_x = self.get_percent().powf(1.0f32/exponent);
+                let new_x = cur_x + (step as f32 / 100.0f32);
+                self.max_brightness as f32 * new_x.powf(exponent)
             }
         };
 
-        self.brightness = max_brightness.min(new_brightness) as usize;
+        self.brightness = self.max_brightness.min(new_brightness as usize);
 
         std::fs::write(&self.brightness_path, &self.brightness.to_string().as_bytes())
             .context("writing brightness failed")
@@ -130,7 +116,7 @@ fn main() -> anyhow::Result<()> {
     if cli.verbose {
         print!("{} -> ", &backlight.get_percent());
     }
-    backlight.change_brightness(cli.action, cli.step, cli.stepping)?;
+    backlight.change_brightness(cli.step, cli.stepping)?;
     if cli.verbose {
         print!("{}", &backlight.get_percent());
     }
