@@ -10,7 +10,7 @@ struct Cli {
     action: Action,
     #[clap(value_parser, display_order = 2)]
     step: usize,
-    #[clap(value_enum, long, default_value("max-relative"))]
+    #[clap(value_enum, long, default_value("parabolic"))]
     stepping: Stepping,
     #[clap(value_parser, long, default_value("2"))]
     exponent: f32,
@@ -22,23 +22,21 @@ struct Cli {
 enum Stepping {
     Absolute,
     CurrentRelative,
-    MaxRelative,
-    MaxRelativeQuadratic { 
+    Parabolic { 
         exponent: f32
     },
 }
 
 impl ValueEnum for Stepping {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Absolute, Self::CurrentRelative, Self::MaxRelative, Self::MaxRelativeQuadratic { exponent: 2.0f32 }]
+        &[Self::Absolute, Self::CurrentRelative, Self::Parabolic { exponent: 2.0f32 }]
     }
 
     fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
         match self {
             Self::Absolute => Some(PossibleValue::new("absolute")),
             Self::CurrentRelative => Some(PossibleValue::new("current-relative")),
-            Self::MaxRelative => Some(PossibleValue::new("max-relative")),
-            Self::MaxRelativeQuadratic { .. } => Some(PossibleValue::new("max-relative-quadratic"))
+            Self::Parabolic { .. } => Some(PossibleValue::new("parabolic"))
         }
     }
 }
@@ -100,15 +98,7 @@ impl Backlight {
                     Action::Minus => brigthness - diff,
                 }
             }
-            Stepping::MaxRelative => {
-                let step = step as f32 / 100.0f32;
-                let diff = max_brightness * step;
-                match action {
-                    Action::Plus => brigthness + diff,
-                    Action::Minus => brigthness - diff,
-                }
-            }
-            Stepping::MaxRelativeQuadratic { exponent } => {
+            Stepping::Parabolic { exponent } => {
                 let cur_x = (brigthness / max_brightness).powf(1.0f32/exponent);
                 let new_x = match action {
                     Action::Plus => cur_x + (step as f32 / 100.0f32),
@@ -132,8 +122,8 @@ fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
 
 fn main() -> anyhow::Result<()> {
     let mut cli = Cli::parse();
-    if let Stepping::MaxRelativeQuadratic { .. } = cli.stepping {
-        cli.stepping = Stepping::MaxRelativeQuadratic { exponent: cli.exponent };
+    if let Stepping::Parabolic { .. } = cli.stepping {
+        cli.stepping = Stepping::Parabolic { exponent: cli.exponent };
     }
 
     let mut backlight = Backlight::new(&cli.device)?;
