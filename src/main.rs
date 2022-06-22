@@ -19,7 +19,7 @@ struct Cli {
 #[derive(Clone)]
 enum Stepping {
     Absolute,
-    CurrentRelative,
+    Geometric,
     Parabolic { 
         exponent: f32
     },
@@ -27,13 +27,13 @@ enum Stepping {
 
 impl ValueEnum for Stepping {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Absolute, Self::CurrentRelative, Self::Parabolic { exponent: 2.0f32 }]
+        &[Self::Absolute, Self::Geometric, Self::Parabolic { exponent: 2.0f32 }]
     }
 
     fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
         match self {
             Self::Absolute => Some(PossibleValue::new("absolute")),
-            Self::CurrentRelative => Some(PossibleValue::new("current-relative")),
+            Self::Geometric => Some(PossibleValue::new("geometric")),
             Self::Parabolic { .. } => Some(PossibleValue::new("parabolic"))
         }
     }
@@ -64,7 +64,7 @@ impl Backlight {
     fn change_brightness(&mut self, step: i32, stepping: Stepping) -> anyhow::Result<()> {
         let new_brightness = match stepping {
             Stepping::Absolute => self.brightness as f32 + step as f32,
-            Stepping::CurrentRelative => {
+            Stepping::Geometric => {
                 let step = step as f32 / 100.0f32;
                 self.brightness as f32 + self.brightness as f32 * step
             }
