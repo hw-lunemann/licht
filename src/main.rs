@@ -39,25 +39,6 @@ impl ValueEnum for Stepping {
     }
 }
 
-#[derive(Clone)]
-enum Action {
-    Plus,
-    Minus,
-}
-
-impl ValueEnum for Action {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Plus, Self::Minus]
-    }
-
-    fn to_possible_value<'a>(&self) -> Option<clap::PossibleValue<'a>> {
-        match self {
-            Self::Plus => Some(PossibleValue::new("+")),
-            Self::Minus => Some(PossibleValue::new("-")),
-        }
-    }
-}
-
 struct Backlight {
     brightness: usize,
     brightness_path: PathBuf,
