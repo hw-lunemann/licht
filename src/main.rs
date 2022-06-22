@@ -13,7 +13,10 @@ struct Cli {
     #[clap(value_parser, long, default_value("2"))]
     exponent: f32,
     #[clap(value_parser, long)]
-    verbose: bool
+    verbose: bool,
+    #[clap(value_parser, long)]
+    dry_run: bool
+
 }
 
 #[derive(Clone)]
@@ -61,7 +64,7 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
-    fn change_brightness(&mut self, step: i32, stepping: Stepping) -> anyhow::Result<()> {
+    fn calculate_brightness(&mut self, step: i32, stepping: Stepping) {
         let new_brightness = match stepping {
             Stepping::Absolute => self.brightness as f32 + step as f32,
             Stepping::Geometric => {
@@ -76,7 +79,9 @@ impl Backlight {
         };
 
         self.brightness = self.max_brightness.min((new_brightness + 0.5f32)as usize);
+    }
 
+    fn write(&self) -> anyhow::Result<()> {
         std::fs::write(&self.brightness_path, &self.brightness.to_string().as_bytes())
             .context("writing brightness failed")
     }
@@ -94,13 +99,17 @@ fn main() -> anyhow::Result<()> {
     }
 
     let mut backlight = Backlight::new(&cli.device)?;
-    if cli.verbose {
+    if cli.verbose || cli.dry_run {
         print!("{} -> ", &backlight.get_percent());
     }
-    backlight.change_brightness(cli.step, cli.stepping)?;
-    if cli.verbose {
+    backlight.calculate_brightness(cli.step, cli.stepping);
+    if cli.verbose || cli.dry_run {
         print!("{}", &backlight.get_percent());
     }
 
-    Ok(())
+    if !cli.dry_run {
+        backlight.write()
+    } else {
+        Ok(())
+    }
 }
