@@ -15,27 +15,29 @@ struct Cli {
     #[clap(value_parser, long)]
     verbose: bool,
     #[clap(value_parser, long)]
-    dry_run: bool
-
+    dry_run: bool,
 }
 
 #[derive(Clone)]
 enum Stepping {
     Absolute,
     Geometric,
-    Parabolic { 
-        exponent: f32
-    },
-    Blend {
-        ratio: f32,
-        a: f32,
-        b: f32
-    }
+    Parabolic { exponent: f32 },
+    Blend { ratio: f32, a: f32, b: f32 },
 }
 
 impl ValueEnum for Stepping {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Absolute, Self::Geometric, Self::Parabolic { exponent: 2.0f32 }, Self::Blend { ratio: 0.75f32, a: 2.2f32, b: 1.8f32 }] 
+        &[
+            Self::Absolute,
+            Self::Geometric,
+            Self::Parabolic { exponent: 2.0f32 },
+            Self::Blend {
+                ratio: 0.75f32,
+                a: 2.2f32,
+                b: 1.8f32,
+            },
+        ]
     }
 
     fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
@@ -43,7 +45,7 @@ impl ValueEnum for Stepping {
             Self::Absolute => Some(PossibleValue::new("absolute")),
             Self::Geometric => Some(PossibleValue::new("geometric")),
             Self::Parabolic { .. } => Some(PossibleValue::new("parabolic")),
-            Self::Blend { .. } => Some(PossibleValue::new("blend"))
+            Self::Blend { .. } => Some(PossibleValue::new("blend")),
         }
     }
 }
@@ -62,7 +64,7 @@ impl Backlight {
         Ok(Self {
             brightness: read_to_usize(&brightness_path)?,
             max_brightness: read_to_usize(device_path.join("max_brightness"))?,
-            brightness_path: device_path.join(brightness_path)
+            brightness_path: device_path.join(brightness_path),
         })
     }
 
@@ -78,34 +80,33 @@ impl Backlight {
                 self.brightness as f32 + self.brightness as f32 * step
             }
             Stepping::Parabolic { exponent } => {
-                let cur_x = self.get_percent().powf(1.0f32/exponent);
+                let cur_x = self.get_percent().powf(1.0f32 / exponent);
                 let new_x = cur_x + (step as f32 / 100.0f32);
-                
+
                 self.max_brightness as f32 * new_x.powf(exponent)
             }
             Stepping::Blend { ratio, a, b } => {
                 let step = step as f32 / 100.0f32;
                 let f = |x: f32| x.powf(a);
                 let f_inverse = |x: f32| x.powf(a.recip());
-                let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(1.0f32/b);
+                let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(1.0f32 / b);
                 let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(b);
-                let h = |x: f32| {
-                    self.max_brightness as f32 * (ratio * f(x) + (1.0f32-ratio) * g(x))
-                };
+                let h =
+                    |x: f32| self.max_brightness as f32 * (ratio * f(x) + (1.0f32 - ratio) * g(x));
 
                 let cur_f_inv = f_inverse(self.get_percent());
                 let cur_g_inv = g_inverse(self.get_percent());
                 let mut l = cur_f_inv.min(cur_g_inv);
                 let mut r = cur_f_inv.max(cur_g_inv);
 
-                let first_guess = ratio*l + (1.0f32-ratio)*r;
+                let first_guess = ratio * l + (1.0f32 - ratio) * r;
                 let mut cur_x = first_guess;
 
                 loop {
                     let diff = h(cur_x) - self.brightness as f32;
-                    
+
                     if diff.abs() <= self.max_brightness as f32 * 0.001f32 {
-                        break
+                        break;
                     }
 
                     if diff > 0.0f32 {
@@ -113,8 +114,8 @@ impl Backlight {
                     } else {
                         l = cur_x;
                     }
-                    
-                    cur_x = (l + (r-l)/2.0f32).clamp(0.0f32, 1.0f32);
+
+                    cur_x = (l + (r - l) / 2.0f32).clamp(0.0f32, 1.0f32);
                 }
 
                 let new_x = (cur_x + step).clamp(0.0f32, 1.0f32);
@@ -122,12 +123,15 @@ impl Backlight {
             }
         };
 
-        self.brightness = self.max_brightness.min((new_brightness + 0.5f32)as usize);
+        self.brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize);
     }
 
     fn write(&self) -> anyhow::Result<()> {
-        std::fs::write(&self.brightness_path, &self.brightness.to_string().as_bytes())
-            .context("writing brightness failed")
+        std::fs::write(
+            &self.brightness_path,
+            &self.brightness.to_string().as_bytes(),
+        )
+        .context("writing brightness failed")
     }
 }
 
@@ -139,7 +143,9 @@ fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
 fn main() -> anyhow::Result<()> {
     let mut cli = Cli::parse();
     if let Stepping::Parabolic { .. } = cli.stepping {
-        cli.stepping = Stepping::Parabolic { exponent: cli.exponent };
+        cli.stepping = Stepping::Parabolic {
+            exponent: cli.exponent,
+        };
     }
 
     let mut backlight = Backlight::new(&cli.device)?;
