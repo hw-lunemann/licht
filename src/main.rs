@@ -80,7 +80,7 @@ impl Backlight {
                 self.brightness as f32 + self.brightness as f32 * step
             }
             Stepping::Parabolic { exponent } => {
-                let cur_x = self.get_percent().powf(1.0f32 / exponent);
+                let cur_x = self.get_percent().powf(exponent.recip());
                 let new_x = cur_x + (step as f32 / 100.0f32);
 
                 self.max_brightness as f32 * new_x.powf(exponent)
@@ -89,7 +89,7 @@ impl Backlight {
                 let step = step as f32 / 100.0f32;
                 let f = |x: f32| x.powf(a);
                 let f_inverse = |x: f32| x.powf(a.recip());
-                let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(1.0f32 / b);
+                let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(b.recip());
                 let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(b);
                 let h =
                     |x: f32| self.max_brightness as f32 * (ratio * f(x) + (1.0f32 - ratio) * g(x));
