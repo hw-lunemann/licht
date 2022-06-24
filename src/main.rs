@@ -1,6 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, PossibleValue, ValueEnum};
-use std::path::{Path, PathBuf};
+use simple_logger::SimpleLogger;
+use std::{path::{Path, PathBuf}, borrow::Borrow};
 
 #[derive(Parser)]
 struct Cli {
@@ -123,7 +124,9 @@ impl Backlight {
             }
         };
 
-        self.brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize);
+        let new_brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize);
+        log::info!("{}% -> {}%", (self.get_percent() * 100.0f32).round(), (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round());
+        self.brightness = new_brightness
     }
 
     fn write(&self) -> anyhow::Result<()> {
@@ -148,14 +151,21 @@ fn main() -> anyhow::Result<()> {
         };
     }
 
+    if cli.verbose {
+        let logger = SimpleLogger::new()
+            .with_level(log::LevelFilter::Info)
+            .without_timestamps()
+            .init();
+        if logger.is_err() {
+            eprint!("Error: logger for verbose mode failed to init.");
+        }
+    }
+
     let mut backlight = Backlight::new(&cli.device)?;
-    if cli.verbose || cli.dry_run {
-        print!("{} -> ", &backlight.get_percent());
-    }
+    log::info!("Device: {}", cli.device);
+    log::info!("Current brightness: {} ({:.0}%)", backlight.brightness, backlight.get_percent()*100.0f32);
+    log::info!("Max brightness: {}", backlight.max_brightness);
     backlight.calculate_brightness(cli.step, cli.stepping);
-    if cli.verbose || cli.dry_run {
-        print!("{}", &backlight.get_percent());
-    }
 
     if !cli.dry_run {
         backlight.write()
