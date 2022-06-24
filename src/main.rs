@@ -1,7 +1,7 @@
 use anyhow::Context;
 use clap::{Parser, PossibleValue, ValueEnum};
 use simple_logger::SimpleLogger;
-use std::{path::{Path, PathBuf}, borrow::Borrow};
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 struct Cli {
@@ -13,6 +13,8 @@ struct Cli {
     stepping: Stepping,
     #[clap(value_parser, long, default_value("2"))]
     exponent: f32,
+    #[clap(value_parser, long, default_value("0"))] 
+    min_brightness: usize,
     #[clap(value_parser, long)]
     verbose: bool,
     #[clap(value_parser, long)]
@@ -73,7 +75,7 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
-    fn calculate_brightness(&mut self, step: i32, stepping: Stepping) {
+    fn calculate_brightness(&mut self, step: i32, stepping: Stepping, min: usize) {
         let new_brightness = match stepping {
             Stepping::Absolute => self.brightness as f32 + step as f32,
             Stepping::Geometric => {
@@ -124,7 +126,7 @@ impl Backlight {
             }
         };
 
-        let new_brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize);
+        let new_brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize).max(min);
         log::info!("{}% -> {}%", (self.get_percent() * 100.0f32).round(), (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round());
         self.brightness = new_brightness
     }
@@ -165,7 +167,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("Device: {}", cli.device);
     log::info!("Current brightness: {} ({:.0}%)", backlight.brightness, backlight.get_percent()*100.0f32);
     log::info!("Max brightness: {}", backlight.max_brightness);
-    backlight.calculate_brightness(cli.step, cli.stepping);
+    backlight.calculate_brightness(cli.step, cli.stepping, cli.min_brightness);
 
     if !cli.dry_run {
         backlight.write()
