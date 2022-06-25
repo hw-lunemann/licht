@@ -1,7 +1,8 @@
-use anyhow::Context;
 use clap::Parser;
 use simple_logger::SimpleLogger;
-use std::path::{Path, PathBuf};
+
+mod backlight;
+use backlight::Backlight;
 
 mod stepping;
 use stepping::Stepping;
@@ -57,58 +58,6 @@ impl Cli {
             .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
-    }
-}
-
-struct Backlight {
-    brightness: usize,
-    brightness_path: PathBuf,
-    max_brightness: usize,
-}
-
-impl Backlight {
-
-    fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
-        let text = std::fs::read_to_string(&path)?;
-        text.replace('\n', "").parse().context("parse failure")
-    }
-
-    fn new(name: &str) -> anyhow::Result<Self> {
-        let device_path = Path::new("/sys/class/backlight/").join(name);
-        let brightness_path = device_path.join("brightness");
-
-        Ok(Self {
-            brightness: Self::read_to_usize(&brightness_path)?,
-            max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
-            brightness_path: device_path.join(brightness_path),
-        })
-    }
-
-    fn get_percent(&self) -> f32 {
-        self.brightness as f32 / self.max_brightness as f32
-    }
-
-    fn calculate_brightness(&mut self, step: i32, stepping: &dyn Stepping, min: usize) {
-        let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness);
-
-        let new_brightness = self
-            .max_brightness
-            .min((new_brightness + 0.5f32) as usize)
-            .max(min);
-        log::info!(
-            "{}% -> {}%",
-            (self.get_percent() * 100.0f32).round(),
-            (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round()
-        );
-        self.brightness = new_brightness
-    }
-
-    fn write(&self) -> anyhow::Result<()> {
-        std::fs::write(
-            &self.brightness_path,
-            &self.brightness.to_string().as_bytes(),
-        )
-        .context("writing brightness failed")
     }
 }
 
