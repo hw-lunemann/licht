@@ -53,11 +53,13 @@ struct Cli {
 }
 
 impl Cli {
-    fn get_stepping(&self) -> Option<&dyn Stepping> {
-        (self.absolute.as_ref().map(|s| s as &dyn Stepping))
+    fn get_stepping(&self) -> &dyn Stepping {
+        const DEFAULT: stepping::parabolic::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
+        self.absolute.as_ref().map(|s| s as &dyn Stepping)
             .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
+            .unwrap_or(&DEFAULT)
     }
 }
 
@@ -87,8 +89,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("Max brightness: {}", backlight.max_brightness);
     backlight.calculate_brightness(
         cli.step,
-        cli.get_stepping()
-            .unwrap_or(&stepping::Parabolic { exponent: 2.0f32 }),
+        cli.get_stepping(),
         cli.min_brightness,
     );
 
