@@ -10,9 +10,9 @@ use stepping::Stepping;
 #[derive(Parser)]
 #[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "geometric", "parabolic", "blend"]).multiple(false)))]
 struct Cli {
-    #[clap(value_parser, display_order = 0)]
     /// The backlight class device from sysfs to control. E.g. intel_backlight
-    device: String,
+    #[clap(value_parser, long, display_order = 0)]
+    device_name: Option<String>,
     #[clap(value_parser, allow_hyphen_values(true))]
     /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2.
     step: i32,
@@ -91,8 +91,19 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    let mut backlight = Backlight::new(&cli.device)?;
-    log::info!("Device: {}", cli.device);
+    let mut backlight = if let Some(device_name) = &cli.device_name {
+        Backlight::from_name(device_name)
+    } else {
+        log::info!("No device name supplied, attempting to discover backlight devices.");
+        let devices = Backlight::discover();
+        if let Some(device_path) = devices.first() {
+            log::info!("Success! Using first device found.");
+            Backlight::from_path(device_path)
+        } else {
+            anyhow::bail!("No backlight device supplied or found")
+        }
+    }?;
+    log::info!("Device: {}", backlight.device_path.display());
     log::info!(
         "Current brightness: {} ({:.0}%)",
         backlight.brightness,

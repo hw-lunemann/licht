@@ -3,10 +3,14 @@ use std::path::{Path, PathBuf};
 
 use crate::Stepping;
 
+fn class_path() -> &'static Path {
+    Path::new("/sys/class/backlight/")
+}
+
 pub struct Backlight {
     pub brightness: usize,
-    pub brightness_path: PathBuf,
     pub max_brightness: usize,
+    pub device_path: PathBuf,
 }
 
 impl Backlight {
@@ -15,14 +19,21 @@ impl Backlight {
         text.replace('\n', "").parse().context("parse failure")
     }
 
-    pub fn new(name: &str) -> anyhow::Result<Self> {
-        let device_path = Path::new("/sys/class/backlight/").join(name);
-        let brightness_path = device_path.join("brightness");
+    pub fn from_name(name: &str) -> anyhow::Result<Self> {
+        let device_path = class_path().join(name);
 
         Ok(Self {
-            brightness: Self::read_to_usize(&brightness_path)?,
+            brightness: Self::read_to_usize(device_path.join("brightness"))?,
             max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
-            brightness_path: device_path.join(brightness_path),
+            device_path
+        })
+    }
+
+    pub fn from_path(device_path: &Path) -> anyhow::Result<Self> {
+        Ok(Self {
+            brightness: Self::read_to_usize(device_path.join("brightness"))?,
+            max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
+            device_path: device_path.to_owned()
         })
     }
 
@@ -47,9 +58,19 @@ impl Backlight {
 
     pub fn write(&self) -> anyhow::Result<()> {
         std::fs::write(
-            &self.brightness_path,
+            &self.device_path.join("brightness"),
             &self.brightness.to_string().as_bytes(),
         )
         .context("writing brightness failed")
+    }
+
+    pub fn discover() -> Vec<PathBuf> {
+        let mut devices = Vec::new();
+        if let Ok(read_dir) = class_path().read_dir() {
+            read_dir.flatten()
+                .for_each(|dir_entry| devices.push(dir_entry.path()))
+        }
+
+        devices
     }
 }
