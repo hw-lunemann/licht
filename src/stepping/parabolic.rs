@@ -1,5 +1,4 @@
 use super::Stepping;
-use regex::Regex;
 
 #[derive(Clone)]
 pub struct Parabolic {
@@ -19,18 +18,7 @@ impl std::str::FromStr for Parabolic {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let regex = Regex::new(r"\(.*\)").unwrap();
-        if !regex.is_match(s) {
-            anyhow::bail!("Parabolic parameters malformed")
-        }
-
-        let s = &s[1..s.len() - 1];
-        if s.len() < 3 {
-            anyhow::bail!("Parabolic parameters malformed")
-        }
-
         let exponent = s.parse::<f32>()?;
-
         Ok(Self { exponent })
     }
 }

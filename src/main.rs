@@ -30,7 +30,7 @@ struct Cli {
 
     /// Maps the current brightness value onto a the parabolic function
     /// x^exponent and advances it <STEP>% on that function.
-    #[clap(value_parser, long, value_name = "(exponent)", display_order = 3)]
+    #[clap(value_parser, long, value_name = "EXPONENT", display_order = 3)]
     parabolic: Option<stepping::Parabolic>,
 
     /// Maps the current birghtness value onto the function
