@@ -12,20 +12,20 @@ struct Cli {
     #[clap(value_parser, display_order = 0)]
     /// The backlight class device from sysfs to control. E.g. intel_backlight
     device: String,
-    #[clap(value_parser, allow_hyphen_values(true), display_order = 1)]
+    #[clap(value_parser, allow_hyphen_values(true))]
     /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2.
     step: i32,
-    #[clap(value_parser, long)]
+    #[clap(value_parser, long, display_order = 1)]
     /// Simply adds the raw step value onto the raw current brightness value
     absolute: Option<Absolute>,
-    #[clap(value_parser, long)]
+    #[clap(value_parser, long, display_order = 2)]
     /// Multiplies the current brightness value by <STEP>%
     geometric: Option<Geometric>,
-    #[clap(value_parser, long, value_name = "(exponent)")]
+    #[clap(value_parser, long, value_name = "(exponent)", display_order = 3)]
     /// Maps the current brightness value onto a the parabolic function
     /// x^exponent and advances it <STEP>% on that function. 
     parabolic: Option<Parabolic>,
-    #[clap(value_parser, long, value_name = "(ratio,a,b)")]
+    #[clap(value_parser, long, value_name = "(ratio,a,b)", display_order = 4)]
     /// Maps the current birghtness value onto the function 
     /// ratio*x^a + (1-m) * (1-(1-x)^(1/b) and advances it <STEP>% on that function.
     /// Recommended parameters for this function are ratio = 0.75, a = 1.8, b = 2.2.
@@ -33,13 +33,13 @@ struct Cli {
     /// Enter the above function into e.g. desmos or geogebra and
     /// change the parameters to your liking.
     blend: Option<Blend>,
-    #[clap(value_parser, long, default_value("0"))] 
+    #[clap(value_parser, long, default_value("0"), display_order = 5)] 
     /// Clamps the brightness to a minimum value.
     min_brightness: usize,
-    #[clap(value_parser, long)]
+    #[clap(value_parser, long, display_order = 6)]
     /// Use verbose output
     verbose: bool,
-    #[clap(value_parser, long)]
+    #[clap(value_parser, long, display_order = 7)]
     /// Do not write the new brightness value to the backlight device.
     /// dry-run implies verbose
     dry_run: bool,
