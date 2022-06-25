@@ -112,7 +112,10 @@ fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
+    let mut cli = Cli::parse();
+    if cli.dry_run {
+        cli.verbose = true;
+    }
 
     if cli.verbose {
         let logger = SimpleLogger::new()
