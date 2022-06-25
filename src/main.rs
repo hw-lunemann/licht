@@ -67,13 +67,19 @@ struct Backlight {
 }
 
 impl Backlight {
+
+    fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
+        let text = std::fs::read_to_string(&path)?;
+        text.replace('\n', "").parse().context("parse failure")
+    }
+
     fn new(name: &str) -> anyhow::Result<Self> {
         let device_path = Path::new("/sys/class/backlight/").join(name);
         let brightness_path = device_path.join("brightness");
 
         Ok(Self {
-            brightness: read_to_usize(&brightness_path)?,
-            max_brightness: read_to_usize(device_path.join("max_brightness"))?,
+            brightness: Self::read_to_usize(&brightness_path)?,
+            max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
             brightness_path: device_path.join(brightness_path),
         })
     }
@@ -104,11 +110,6 @@ impl Backlight {
         )
         .context("writing brightness failed")
     }
-}
-
-fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
-    let text = std::fs::read_to_string(&path)?;
-    text.replace('\n', "").parse().context("parse failure")
 }
 
 fn main() -> anyhow::Result<()> {
