@@ -4,6 +4,7 @@ use simple_logger::SimpleLogger;
 use std::path::{Path, PathBuf};
 use regex::Regex;
 
+mod stepping;
 
 #[derive(Parser)]
 #[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "geometric", "parabolic", "blend"]).multiple(false)))]
