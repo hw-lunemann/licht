@@ -1,6 +1,6 @@
 use super::Stepping;
 
-#[derive(clap::Args, Clone)]
+#[derive(Clone)]
 pub struct Absolute;
 
 impl std::str::FromStr for Absolute {

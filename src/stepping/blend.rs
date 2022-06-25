@@ -1,13 +1,10 @@
 use super::Stepping;
 use regex::Regex;
 
-#[derive(clap::Args, Clone)]
+#[derive(Clone)]
 pub struct Blend {
-    #[clap(value_parser, long, default_value("2"))]
     pub ratio: f32,
-    #[clap(value_parser, long, default_value("2"))]
     pub a: f32,
-    #[clap(value_parser, long, default_value("2"))]
     pub b: f32,
 }
 

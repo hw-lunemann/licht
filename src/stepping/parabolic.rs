@@ -1,7 +1,7 @@
 use super::Stepping;
 use regex::Regex;
 
-#[derive(clap::Args, Clone)]
+#[derive(Clone)]
 pub struct Parabolic {
     pub exponent: f32,
 }
