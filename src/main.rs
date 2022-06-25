@@ -1,8 +1,8 @@
 use anyhow::Context;
 use clap::Parser;
+use regex::Regex;
 use simple_logger::SimpleLogger;
 use std::path::{Path, PathBuf};
-use regex::Regex;
 
 mod stepping;
 
@@ -15,44 +15,49 @@ struct Cli {
     #[clap(value_parser, allow_hyphen_values(true))]
     /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2.
     step: i32,
-    #[clap(value_parser, long, display_order = 1)]
     /// Simply adds the raw step value onto the raw current brightness value
+    #[clap(value_parser, long, display_order = 1)]
     absolute: Option<Absolute>,
-    #[clap(value_parser, long, display_order = 2)]
+
     /// Multiplies the current brightness value by <STEP>%
+    #[clap(value_parser, long, display_order = 2)]
     geometric: Option<Geometric>,
-    #[clap(value_parser, long, value_name = "(exponent)", display_order = 3)]
+
     /// Maps the current brightness value onto a the parabolic function
-    /// x^exponent and advances it <STEP>% on that function. 
+    /// x^exponent and advances it <STEP>% on that function.
+    #[clap(value_parser, long, value_name = "(exponent)", display_order = 3)]
     parabolic: Option<Parabolic>,
-    #[clap(value_parser, long, value_name = "(ratio,a,b)", display_order = 4)]
-    /// Maps the current birghtness value onto the function 
+
+    /// Maps the current birghtness value onto the function
     /// ratio*x^a + (1-m) * (1-(1-x)^(1/b) and advances it <STEP>% on that function.
     /// Recommended parameters for this function are ratio = 0.75, a = 1.8, b = 2.2.
     /// The argument for that would be --blend (0.75,1.8,2.2)
     /// Enter the above function into e.g. desmos or geogebra and
     /// change the parameters to your liking.
+    #[clap(value_parser, long, value_name = "(ratio,a,b)", display_order = 4)]
     blend: Option<Blend>,
-    #[clap(value_parser, long, default_value("0"), display_order = 5)] 
+
     /// Clamps the brightness to a minimum value.
+    #[clap(value_parser, long, default_value("0"), display_order = 5)]
     min_brightness: usize,
-    #[clap(value_parser, long, display_order = 6)]
+
     /// Use verbose output
+    #[clap(value_parser, long, display_order = 6)]
     verbose: bool,
-    #[clap(value_parser, long, display_order = 7)]
+
     /// Do not write the new brightness value to the backlight device.
     /// dry-run implies verbose
+    #[clap(value_parser, long, display_order = 7)]
     dry_run: bool,
 }
 
 impl Cli {
-
-fn get_stepping(&self) -> Option<&dyn Stepping> {
-    (self.absolute.as_ref().map(|s| s as &dyn Stepping))
-        .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
-        .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
-        .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
-}
+    fn get_stepping(&self) -> Option<&dyn Stepping> {
+        (self.absolute.as_ref().map(|s| s as &dyn Stepping))
+            .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
+            .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
+            .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
+    }
 }
 
 trait Stepping {
@@ -71,13 +76,13 @@ impl std::str::FromStr for Absolute {
 }
 
 impl Stepping for Absolute {
-    fn calculate(&self, step: i32, cur: usize, _:usize) -> f32 {
+    fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {
         cur as f32 + step as f32
     }
 }
 
 #[derive(clap::Args, Clone)]
-struct Geometric; 
+struct Geometric;
 
 impl std::str::FromStr for Geometric {
     type Err = anyhow::Error;
@@ -100,7 +105,7 @@ struct Parabolic {
 }
 
 impl Stepping for Parabolic {
-    fn calculate(&self, step: i32, cur: usize, max:usize) -> f32 {
+    fn calculate(&self, step: i32, cur: usize, max: usize) -> f32 {
         let cur_x = (cur as f32 / max as f32).powf(self.exponent.recip());
         let new_x = cur_x + (step as f32 / 100.0f32);
 
@@ -117,16 +122,14 @@ impl std::str::FromStr for Parabolic {
             anyhow::bail!("Parabolic parameters malformed")
         }
 
-        let s = &s[1..s.len()-1];
+        let s = &s[1..s.len() - 1];
         if s.len() < 3 {
             anyhow::bail!("Parabolic parameters malformed")
         }
 
         let exponent = s.parse::<f32>()?;
 
-        Ok(Self {
-            exponent
-        })
+        Ok(Self { exponent })
     }
 }
 
@@ -147,8 +150,7 @@ impl Stepping for Blend {
         let f_inverse = |x: f32| x.powf(self.a.recip());
         let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
         let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b);
-        let h =
-            |x: f32| max as f32 * (self.ratio * f(x) + (1.0f32 - self.ratio) * g(x));
+        let h = |x: f32| max as f32 * (self.ratio * f(x) + (1.0f32 - self.ratio) * g(x));
 
         let cur_f_inv = f_inverse(cur as f32 / max as f32);
         let cur_g_inv = g_inverse(cur as f32 / max as f32);
@@ -188,7 +190,7 @@ impl std::str::FromStr for Blend {
             anyhow::bail!("Blend parameters malformed")
         }
 
-        let s = &s[1..s.len()-1];
+        let s = &s[1..s.len() - 1];
         let nums: Vec<&str> = s.split(',').collect();
         if nums.len() != 3 {
             anyhow::bail!("Blend parameters malformed: too many paramters")
@@ -198,14 +200,9 @@ impl std::str::FromStr for Blend {
         let a = nums[1].parse::<f32>()?;
         let b = nums[2].parse::<f32>()?;
 
-        Ok(Self {
-            ratio,
-            a,
-            b
-        })
+        Ok(Self { ratio, a, b })
     }
 }
-
 
 struct Backlight {
     brightness: usize,
@@ -232,8 +229,15 @@ impl Backlight {
     fn calculate_brightness(&mut self, step: i32, stepping: &dyn Stepping, min: usize) {
         let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness);
 
-        let new_brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize).max(min);
-        log::info!("{}% -> {}%", (self.get_percent() * 100.0f32).round(), (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round());
+        let new_brightness = self
+            .max_brightness
+            .min((new_brightness + 0.5f32) as usize)
+            .max(min);
+        log::info!(
+            "{}% -> {}%",
+            (self.get_percent() * 100.0f32).round(),
+            (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round()
+        );
         self.brightness = new_brightness
     }
 
@@ -266,9 +270,18 @@ fn main() -> anyhow::Result<()> {
 
     let mut backlight = Backlight::new(&cli.device)?;
     log::info!("Device: {}", cli.device);
-    log::info!("Current brightness: {} ({:.0}%)", backlight.brightness, backlight.get_percent()*100.0f32);
+    log::info!(
+        "Current brightness: {} ({:.0}%)",
+        backlight.brightness,
+        backlight.get_percent() * 100.0f32
+    );
     log::info!("Max brightness: {}", backlight.max_brightness);
-    backlight.calculate_brightness(cli.step, cli.get_stepping().unwrap_or(&Parabolic { exponent: 2.0f32 }), cli.min_brightness);
+    backlight.calculate_brightness(
+        cli.step,
+        cli.get_stepping()
+            .unwrap_or(&Parabolic { exponent: 2.0f32 }),
+        cli.min_brightness,
+    );
 
     if !cli.dry_run {
         backlight.write()
