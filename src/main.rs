@@ -1,18 +1,25 @@
 use anyhow::Context;
-use clap::{Parser, PossibleValue, ValueEnum};
+use clap::Parser;
 use simple_logger::SimpleLogger;
 use std::path::{Path, PathBuf};
+use regex::Regex;
+
 
 #[derive(Parser)]
+#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "geometric", "parabolic", "blend"]).multiple(false)))]
 struct Cli {
     #[clap(value_parser, display_order = 0)]
     device: String,
     #[clap(value_parser, allow_hyphen_values(true), display_order = 1)]
     step: i32,
-    #[clap(value_enum, long, default_value("parabolic"))]
-    stepping: Stepping,
-    #[clap(value_parser, long, default_value("2"))]
-    exponent: f32,
+    #[clap(value_parser, long)]
+    absolute: Option<Absolute>,
+    #[clap(value_parser, long)]
+    geometric: Option<Geometric>,
+    #[clap(value_parser, long)]
+    parabolic: Option<Parabolic>,
+    #[clap(value_parser, long)]
+    blend: Option<Blend>,
     #[clap(value_parser, long, default_value("0"))] 
     min_brightness: usize,
     #[clap(value_parser, long)]
@@ -21,37 +28,167 @@ struct Cli {
     dry_run: bool,
 }
 
-#[derive(Clone)]
-enum Stepping {
-    Absolute,
-    Geometric,
-    Parabolic { exponent: f32 },
-    Blend { ratio: f32, a: f32, b: f32 },
+impl Cli {
+
+fn get_stepping(&self) -> Option<&dyn Stepping> {
+    (self.absolute.as_ref().map(|s| s as &dyn Stepping))
+        .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
+        .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
+        .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
+}
 }
 
-impl ValueEnum for Stepping {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[
-            Self::Absolute,
-            Self::Geometric,
-            Self::Parabolic { exponent: 2.0f32 },
-            Self::Blend {
-                ratio: 0.75f32,
-                a: 2.2f32,
-                b: 1.8f32,
-            },
-        ]
-    }
+trait Stepping {
+    fn calculate(&self, step: i32, cur: usize, max: usize) -> f32;
+}
 
-    fn to_possible_value<'a>(&self) -> Option<PossibleValue<'a>> {
-        match self {
-            Self::Absolute => Some(PossibleValue::new("absolute")),
-            Self::Geometric => Some(PossibleValue::new("geometric")),
-            Self::Parabolic { .. } => Some(PossibleValue::new("parabolic")),
-            Self::Blend { .. } => Some(PossibleValue::new("blend")),
+#[derive(clap::Args, Clone)]
+struct Absolute;
+
+impl std::str::FromStr for Absolute {
+    type Err = anyhow::Error;
+
+    fn from_str(_: &str) -> Result<Self, Self::Err> {
+        Ok(Self)
+    }
+}
+
+impl Stepping for Absolute {
+    fn calculate(&self, step: i32, cur: usize, _:usize) -> f32 {
+        cur as f32 + step as f32
+    }
+}
+
+#[derive(clap::Args, Clone)]
+struct Geometric; 
+
+impl std::str::FromStr for Geometric {
+    type Err = anyhow::Error;
+
+    fn from_str(_: &str) -> Result<Self, Self::Err> {
+        Ok(Self)
+    }
+}
+
+impl Stepping for Geometric {
+    fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {
+        let step = step as f32 / 100.0f32;
+        cur as f32 + cur as f32 * step
+    }
+}
+
+#[derive(clap::Args, Clone)]
+struct Parabolic {
+    exponent: f32,
+}
+
+impl Stepping for Parabolic {
+    fn calculate(&self, step: i32, cur: usize, max:usize) -> f32 {
+        let cur_x = (cur as f32 / max as f32).powf(self.exponent.recip());
+        let new_x = cur_x + (step as f32 / 100.0f32);
+
+        max as f32 * new_x.powf(self.exponent)
+    }
+}
+
+impl std::str::FromStr for Parabolic {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let regex = Regex::new(r"\(.*\)").unwrap();
+        if !regex.is_match(s) {
+            anyhow::bail!("Parabolic parameters malformed")
         }
+
+        let s = &s[1..s.len()-1];
+        if s.len() < 3 {
+            anyhow::bail!("Parabolic parameters malformed")
+        }
+
+        let exponent = s.parse::<f32>()?;
+
+        Ok(Self {
+            exponent
+        })
     }
 }
+
+#[derive(clap::Args, Clone)]
+struct Blend {
+    #[clap(value_parser, long, default_value("2"))]
+    ratio: f32,
+    #[clap(value_parser, long, default_value("2"))]
+    a: f32,
+    #[clap(value_parser, long, default_value("2"))]
+    b: f32,
+}
+
+impl Stepping for Blend {
+    fn calculate(&self, step: i32, cur: usize, max: usize) -> f32 {
+        let step = step as f32 / 100.0f32;
+        let f = |x: f32| x.powf(self.a);
+        let f_inverse = |x: f32| x.powf(self.a.recip());
+        let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
+        let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b);
+        let h =
+            |x: f32| max as f32 * (self.ratio * f(x) + (1.0f32 - self.ratio) * g(x));
+
+        let cur_f_inv = f_inverse(cur as f32 / max as f32);
+        let cur_g_inv = g_inverse(cur as f32 / max as f32);
+        let mut l = cur_f_inv.min(cur_g_inv);
+        let mut r = cur_f_inv.max(cur_g_inv);
+
+        let first_guess = self.ratio * l + (1.0f32 - self.ratio) * r;
+        let mut cur_x = first_guess;
+
+        loop {
+            let diff = h(cur_x) - cur as f32;
+
+            if diff.abs() <= max as f32 * 0.001f32 {
+                break;
+            }
+
+            if diff > 0.0f32 {
+                r = cur_x;
+            } else {
+                l = cur_x;
+            }
+
+            cur_x = (l + (r - l) / 2.0f32).clamp(0.0f32, 1.0f32);
+        }
+
+        let new_x = (cur_x + step).clamp(0.0f32, 1.0f32);
+        h(new_x)
+    }
+}
+
+impl std::str::FromStr for Blend {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let regex = Regex::new(r"\(.*,.*,.*\)").unwrap();
+        if !regex.is_match(s) {
+            anyhow::bail!("Blend parameters malformed")
+        }
+
+        let s = &s[1..s.len()-1];
+        let nums: Vec<&str> = s.split(',').collect();
+        if nums.len() != 3 {
+            anyhow::bail!("Blend parameters malformed: too many paramters")
+        }
+
+        let ratio = nums[0].parse::<f32>()?;
+        let a = nums[1].parse::<f32>()?;
+        let b = nums[2].parse::<f32>()?;
+
+        Ok(Self {
+            ratio,
+            a,
+            b
+        })
+    }
+}
+
 
 struct Backlight {
     brightness: usize,
@@ -75,56 +212,8 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
-    fn calculate_brightness(&mut self, step: i32, stepping: Stepping, min: usize) {
-        let new_brightness = match stepping {
-            Stepping::Absolute => self.brightness as f32 + step as f32,
-            Stepping::Geometric => {
-                let step = step as f32 / 100.0f32;
-                self.brightness as f32 + self.brightness as f32 * step
-            }
-            Stepping::Parabolic { exponent } => {
-                let cur_x = self.get_percent().powf(exponent.recip());
-                let new_x = cur_x + (step as f32 / 100.0f32);
-
-                self.max_brightness as f32 * new_x.powf(exponent)
-            }
-            Stepping::Blend { ratio, a, b } => {
-                let step = step as f32 / 100.0f32;
-                let f = |x: f32| x.powf(a);
-                let f_inverse = |x: f32| x.powf(a.recip());
-                let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(b.recip());
-                let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(b);
-                let h =
-                    |x: f32| self.max_brightness as f32 * (ratio * f(x) + (1.0f32 - ratio) * g(x));
-
-                let cur_f_inv = f_inverse(self.get_percent());
-                let cur_g_inv = g_inverse(self.get_percent());
-                let mut l = cur_f_inv.min(cur_g_inv);
-                let mut r = cur_f_inv.max(cur_g_inv);
-
-                let first_guess = ratio * l + (1.0f32 - ratio) * r;
-                let mut cur_x = first_guess;
-
-                loop {
-                    let diff = h(cur_x) - self.brightness as f32;
-
-                    if diff.abs() <= self.max_brightness as f32 * 0.001f32 {
-                        break;
-                    }
-
-                    if diff > 0.0f32 {
-                        r = cur_x;
-                    } else {
-                        l = cur_x;
-                    }
-
-                    cur_x = (l + (r - l) / 2.0f32).clamp(0.0f32, 1.0f32);
-                }
-
-                let new_x = (cur_x + step).clamp(0.0f32, 1.0f32);
-                h(new_x)
-            }
-        };
+    fn calculate_brightness(&mut self, step: i32, stepping: &dyn Stepping, min: usize) {
+        let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness);
 
         let new_brightness = self.max_brightness.min((new_brightness + 0.5f32) as usize).max(min);
         log::info!("{}% -> {}%", (self.get_percent() * 100.0f32).round(), (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round());
@@ -146,12 +235,7 @@ fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut cli = Cli::parse();
-    if let Stepping::Parabolic { .. } = cli.stepping {
-        cli.stepping = Stepping::Parabolic {
-            exponent: cli.exponent,
-        };
-    }
+    let cli = Cli::parse();
 
     if cli.verbose {
         let logger = SimpleLogger::new()
@@ -167,7 +251,7 @@ fn main() -> anyhow::Result<()> {
     log::info!("Device: {}", cli.device);
     log::info!("Current brightness: {} ({:.0}%)", backlight.brightness, backlight.get_percent()*100.0f32);
     log::info!("Max brightness: {}", backlight.max_brightness);
-    backlight.calculate_brightness(cli.step, cli.stepping, cli.min_brightness);
+    backlight.calculate_brightness(cli.step, cli.get_stepping().unwrap_or(&Parabolic { exponent: 2.0f32 }), cli.min_brightness);
 
     if !cli.dry_run {
         backlight.write()
