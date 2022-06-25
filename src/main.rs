@@ -17,11 +17,15 @@ struct Cli {
     /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2.
     step: i32,
     /// Simply adds the raw step value onto the raw current brightness value
-    #[clap(value_parser, long, display_order = 1)]
+    #[clap(value_parser, name = "absolute", long, display_order = 1)]
+    absolute_arg: bool,
+    #[clap(skip)]
     absolute: Option<stepping::Absolute>,
 
     /// Multiplies the current brightness value by <STEP>%
-    #[clap(value_parser, long, display_order = 2)]
+    #[clap(value_parser, name = "geometric", long, display_order = 2)]
+    geometric_arg: bool,
+    #[clap(skip)]
     geometric: Option<stepping::Geometric>,
 
     /// Maps the current brightness value onto a the parabolic function
@@ -67,6 +71,12 @@ fn main() -> anyhow::Result<()> {
     let mut cli = Cli::parse();
     if cli.dry_run {
         cli.verbose = true;
+    }
+    if cli.absolute_arg {
+        cli.absolute = Some(stepping::Absolute);
+    }
+    if cli.geometric_arg {
+        cli.geometric = Some(stepping::Geometric);
     }
 
     if cli.verbose {
