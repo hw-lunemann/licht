@@ -1,15 +1,6 @@
 use super::Stepping;
 
-#[derive(Clone)]
 pub struct Geometric;
-
-impl std::str::FromStr for Geometric {
-    type Err = anyhow::Error;
-
-    fn from_str(_: &str) -> Result<Self, Self::Err> {
-        Ok(Self)
-    }
-}
 
 impl Stepping for Geometric {
     fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {

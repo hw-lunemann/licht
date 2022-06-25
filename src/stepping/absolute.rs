@@ -1,15 +1,6 @@
 use super::Stepping;
 
-#[derive(Clone)]
 pub struct Absolute;
-
-impl std::str::FromStr for Absolute {
-    type Err = anyhow::Error;
-
-    fn from_str(_: &str) -> Result<Self, Self::Err> {
-        Ok(Self)
-    }
-}
 
 impl Stepping for Absolute {
     fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {
