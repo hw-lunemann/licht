@@ -1,7 +1,7 @@
 use super::Stepping;
 
 #[derive(clap::Args, Clone)]
-struct Geometric; 
+pub struct Geometric;
 
 impl std::str::FromStr for Geometric {
     type Err = anyhow::Error;

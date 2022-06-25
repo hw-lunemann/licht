@@ -1,8 +1,13 @@
-mod absolute;
-mod geometric;
-mod parabolic;
-mod blend;
+pub mod absolute;
+pub mod blend;
+pub mod geometric;
+pub mod parabolic;
 
-trait Stepping {
+pub use absolute::Absolute;
+pub use blend::Blend;
+pub use geometric::Geometric;
+pub use parabolic::Parabolic;
+
+pub trait Stepping {
     fn calculate(&self, step: i32, cur: usize, max: usize) -> f32;
 }

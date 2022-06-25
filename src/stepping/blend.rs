@@ -2,13 +2,13 @@ use super::Stepping;
 use regex::Regex;
 
 #[derive(clap::Args, Clone)]
-struct Blend {
+pub struct Blend {
     #[clap(value_parser, long, default_value("2"))]
-    ratio: f32,
+    pub ratio: f32,
     #[clap(value_parser, long, default_value("2"))]
-    a: f32,
+    pub a: f32,
     #[clap(value_parser, long, default_value("2"))]
-    b: f32,
+    pub b: f32,
 }
 
 impl Stepping for Blend {
@@ -18,8 +18,7 @@ impl Stepping for Blend {
         let f_inverse = |x: f32| x.powf(self.a.recip());
         let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
         let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b);
-        let h =
-            |x: f32| max as f32 * (self.ratio * f(x) + (1.0f32 - self.ratio) * g(x));
+        let h = |x: f32| max as f32 * (self.ratio * f(x) + (1.0f32 - self.ratio) * g(x));
 
         let cur_f_inv = f_inverse(cur as f32 / max as f32);
         let cur_g_inv = g_inverse(cur as f32 / max as f32);
@@ -59,7 +58,7 @@ impl std::str::FromStr for Blend {
             anyhow::bail!("Blend parameters malformed")
         }
 
-        let s = &s[1..s.len()-1];
+        let s = &s[1..s.len() - 1];
         let nums: Vec<&str> = s.split(',').collect();
         if nums.len() != 3 {
             anyhow::bail!("Blend parameters malformed: too many paramters")
@@ -69,10 +68,6 @@ impl std::str::FromStr for Blend {
         let a = nums[1].parse::<f32>()?;
         let b = nums[2].parse::<f32>()?;
 
-        Ok(Self {
-            ratio,
-            a,
-            b
-        })
+        Ok(Self { ratio, a, b })
     }
 }
