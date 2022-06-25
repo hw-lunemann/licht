@@ -10,3 +10,4 @@ clap = { version = "3.2.5", features = ["derive"]}	# A simple to use, efficient,
 anyhow = "1.0.58"                                   # Flexible concrete Error type built on std::error::Error
 simple_logger = "2.1.0"     # A logger that prints all messages with a readable output format
 log = "0.4.17"             # A lightweight logging facade for Rust 
+regex = "1"
