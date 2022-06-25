@@ -10,7 +10,6 @@ pub struct Backlight {
 }
 
 impl Backlight {
-
     fn read_to_usize<P: AsRef<Path>>(path: P) -> anyhow::Result<usize> {
         let text = std::fs::read_to_string(&path)?;
         text.replace('\n', "").parse().context("parse failure")
@@ -54,4 +53,3 @@ impl Backlight {
         .context("writing brightness failed")
     }
 }
-

@@ -39,7 +39,7 @@ struct Cli {
     /// The argument for that would be --blend (0.75,1.8,2.2)
     /// Enter the above function into e.g. desmos or geogebra and
     /// change the parameters to your liking.
-    #[clap(value_parser, long, value_name = "(ratio,a,b)", display_order = 4)]
+    #[clap(value_parser, long, value_name = "(RATIO,A,B)", display_order = 4)]
     blend: Option<stepping::Blend>,
 
     /// Clamps the brightness to a minimum value.
@@ -59,7 +59,9 @@ struct Cli {
 impl Cli {
     fn get_stepping(&self) -> &dyn Stepping {
         const DEFAULT: stepping::parabolic::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
-        self.absolute.as_ref().map(|s| s as &dyn Stepping)
+        self.absolute
+            .as_ref()
+            .map(|s| s as &dyn Stepping)
             .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
@@ -97,11 +99,7 @@ fn main() -> anyhow::Result<()> {
         backlight.get_percent() * 100.0f32
     );
     log::info!("Max brightness: {}", backlight.max_brightness);
-    backlight.calculate_brightness(
-        cli.step,
-        cli.get_stepping(),
-        cli.min_brightness,
-    );
+    backlight.calculate_brightness(cli.step, cli.get_stepping(), cli.min_brightness);
 
     if !cli.dry_run {
         backlight.write()
