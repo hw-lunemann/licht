@@ -9,7 +9,7 @@ mod stepping;
 use stepping::Stepping;
 
 #[derive(Parser)]
-#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["linear", "geometric", "parabolic", "blend"]).multiple(false)))]
+#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "blend", "geometric", "linear", "parabolic"]).multiple(false)))]
 struct Cli {
     /// The backlight class device from sysfs to control. E.g. intel_backlight
     #[clap(value_parser, long, display_order = 0)]
@@ -72,7 +72,7 @@ struct Cli {
 
 impl Cli {
     fn get_stepping(&self) -> &dyn Stepping {
-        const DEFAULT: stepping::parabolic::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
+        const DEFAULT: stepping::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
         self.linear
             .as_ref()
             .map(|s| s as &dyn Stepping)

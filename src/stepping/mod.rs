@@ -1,8 +1,8 @@
-pub mod linear;
-pub mod blend;
-pub mod geometric;
-pub mod parabolic;
-pub mod absolute;
+mod linear;
+mod blend;
+mod geometric;
+mod parabolic;
+mod absolute;
 
 pub use linear::Linear;
 pub use blend::Blend;
