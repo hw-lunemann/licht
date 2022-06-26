@@ -9,7 +9,7 @@ mod stepping;
 use stepping::Stepping;
 
 #[derive(Parser)]
-#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "geometric", "parabolic", "blend"]).multiple(false)))]
+#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["linear", "geometric", "parabolic", "blend"]).multiple(false)))]
 struct Cli {
     /// The backlight class device from sysfs to control. E.g. intel_backlight
     #[clap(value_parser, long, display_order = 0)]
@@ -21,10 +21,10 @@ struct Cli {
     step: Option<i32>,
 
     /// Simply adds the raw <STEP> value onto the raw current brightness value
-    #[clap(value_parser, name = "absolute", long, display_order = 1)]
-    absolute_arg: bool,
+    #[clap(value_parser, name = "linear", long, display_order = 1)]
+    linear_arg: bool,
     #[clap(skip)]
-    absolute: Option<stepping::Absolute>,
+    linear: Option<stepping::Linear>,
 
     /// Multiplies the current brightness value by <STEP>%
     #[clap(value_parser, name = "geometric", long, display_order = 2)]
@@ -73,7 +73,7 @@ struct Cli {
 impl Cli {
     fn get_stepping(&self) -> &dyn Stepping {
         const DEFAULT: stepping::parabolic::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
-        self.absolute
+        self.linear
             .as_ref()
             .map(|s| s as &dyn Stepping)
             .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
@@ -89,8 +89,8 @@ fn main() -> anyhow::Result<()> {
     if cli.dry_run {
         cli.verbose = true;
     }
-    if cli.absolute_arg {
-        cli.absolute = Some(stepping::Absolute);
+    if cli.linear_arg {
+        cli.linear = Some(stepping::Linear);
     }
     if cli.geometric_arg {
         cli.geometric = Some(stepping::Geometric);
