@@ -13,10 +13,13 @@ struct Cli {
     /// The backlight class device from sysfs to control. E.g. intel_backlight
     #[clap(value_parser, long, display_order = 0)]
     device_name: Option<String>,
+
+    /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2 but
+    /// could be a factor or a raw value. See the chosen stepping for details.
     #[clap(value_parser, allow_hyphen_values(true))]
-    /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2.
     step: i32,
-    /// Simply adds the raw step value onto the raw current brightness value
+
+    /// Simply adds the raw <STEP> value onto the raw current brightness value
     #[clap(value_parser, name = "absolute", long, display_order = 1)]
     absolute_arg: bool,
     #[clap(skip)]
