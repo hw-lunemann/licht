@@ -46,6 +46,12 @@ struct Cli {
     #[clap(value_parser, long, value_name = "(RATIO,A,B)", display_order = 4)]
     blend: Option<stepping::Blend>,
 
+    /// Simply sets the current brightness value to <STEP>
+    #[clap(value_parser, name = "set", long, display_order = 1)]
+    set_arg: bool,
+    #[clap(skip)]
+    set: Option<stepping::Set>,
+
     /// Clamps the brightness to a minimum value.
     #[clap(value_parser, long, default_value("0"), display_order = 5)]
     min_brightness: usize,
@@ -73,6 +79,7 @@ impl Cli {
             .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
             .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
+            .or_else(|| self.set.as_ref().map(|s| s as &dyn Stepping))
             .unwrap_or(&DEFAULT)
     }
 }
@@ -87,6 +94,9 @@ fn main() -> anyhow::Result<()> {
     }
     if cli.geometric_arg {
         cli.geometric = Some(stepping::Geometric);
+    }
+    if cli.set_arg {
+        cli.set = Some(stepping::Set);
     }
 
     if cli.verbose {
