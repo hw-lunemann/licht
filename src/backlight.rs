@@ -42,18 +42,15 @@ impl Backlight {
     }
 
     pub fn calculate_brightness(&mut self, step: i32, stepping: &dyn Stepping, min: usize) {
-        let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness);
+        let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness)
+            .clamp(min as f32, self.max_brightness as f32);
 
-        let new_brightness = self
-            .max_brightness
-            .min((new_brightness + 0.5f32) as usize)
-            .max(min);
         log::info!(
             "{}% -> {}%",
             (self.get_percent() * 100.0f32).round(),
-            (new_brightness as f32 / self.max_brightness as f32 * 100.0f32).round()
+            (new_brightness / self.max_brightness as f32 * 100.0f32).round()
         );
-        self.brightness = new_brightness
+        self.brightness = new_brightness as usize;
     }
 
     pub fn write(&self) -> anyhow::Result<()> {
