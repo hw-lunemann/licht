@@ -1,3 +1,4 @@
+use anyhow::Context;
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
@@ -17,7 +18,7 @@ struct Cli {
     /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2 but
     /// could be a factor or a raw value. See the chosen stepping for details.
     #[clap(value_parser, allow_hyphen_values(true))]
-    step: i32,
+    step: Option<i32>,
 
     /// Simply adds the raw <STEP> value onto the raw current brightness value
     #[clap(value_parser, name = "absolute", long, display_order = 1)]
@@ -57,6 +58,10 @@ struct Cli {
     /// dry-run implies verbose
     #[clap(value_parser, long, display_order = 7)]
     dry_run: bool,
+
+    /// List availble backlight devices
+    #[clap(value_parser, long, exclusive(true), display_order = 8)]
+    list: bool,
 }
 
 impl Cli {
@@ -94,30 +99,33 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    let mut backlight = if let Some(device_name) = &cli.device_name {
-        Backlight::from_name(device_name)
-    } else {
-        log::info!("No device name supplied, attempting to discover backlight devices.");
-        let devices = Backlight::discover();
-        if let Some(device_path) = devices.first() {
-            log::info!("Success! Using first device found.");
-            Backlight::from_path(device_path)
-        } else {
-            anyhow::bail!("No backlight device supplied or found")
+    if cli.list {
+        for device_path in Backlight::discover() {
+            println!("{}", Backlight::from_path(&device_path)?);
         }
-    }?;
-    log::info!("Device: {}", backlight.device_path.display());
-    log::info!(
-        "Current brightness: {} ({:.0}%)",
-        backlight.brightness,
-        backlight.get_percent() * 100.0f32
-    );
-    log::info!("Max brightness: {}", backlight.max_brightness);
-    backlight.calculate_brightness(cli.step, cli.get_stepping(), cli.min_brightness);
-
-    if !cli.dry_run {
-        backlight.write()
     } else {
-        Ok(())
+        let mut backlight = if let Some(device_name) = &cli.device_name {
+            Backlight::from_name(device_name)
+        } else {
+            log::info!("No device name supplied, attempting to discover backlight devices.");
+            let devices = Backlight::discover();
+            if let Some(device_path) = devices.first() {
+                log::info!("Success! Using first device found.");
+                Backlight::from_path(device_path)
+            } else {
+                anyhow::bail!("No backlight device supplied or found")
+            }
+        }?;
+        log::info!("{}", backlight);
+        backlight.calculate_brightness(
+            cli.step.context("No step value provided")?,
+            cli.get_stepping(),
+            cli.min_brightness);
+
+        if !cli.dry_run {
+            backlight.write()?;
+        }
     }
+
+    Ok(())
 }

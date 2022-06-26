@@ -75,7 +75,7 @@ impl Backlight {
 impl std::fmt::Display for Backlight {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, 
-               "Device: {}\nCurrent brightness: {} ({:.0}%\nMax brightness: {})", 
+               "Device: {}\nCurrent brightness: {} ({:.0}%)\nMax brightness: {}", 
                self.device_path.display(), 
                self.brightness, 
                self.get_percent() * 100.0f32, 
