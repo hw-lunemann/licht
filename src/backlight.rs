@@ -41,8 +41,8 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
-    pub fn calculate_brightness(&mut self, step: i32, stepping: &dyn Stepping, min: usize) {
-        let new_brightness = stepping.calculate(step, self.brightness, self.max_brightness)
+    pub fn calculate_brightness(&mut self, stepping: &dyn Stepping, min: usize) {
+        let new_brightness = stepping.calculate(self.brightness, self.max_brightness)
             .clamp(min as f32, self.max_brightness as f32);
 
         log::info!(

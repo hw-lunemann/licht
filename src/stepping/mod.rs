@@ -11,5 +11,5 @@ pub use parabolic::Parabolic;
 pub use absolute::Absolute;
 
 pub trait Stepping {
-    fn calculate(&self, step: i32, cur: usize, max: usize) -> f32;
+    fn calculate(&self, cur: usize, max: usize) -> f32;
 }

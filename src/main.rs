@@ -9,133 +9,145 @@ mod stepping;
 use stepping::Stepping;
 
 #[derive(Parser)]
-#[clap(group(clap::ArgGroup::new("stepping-mode").args(&["absolute", "blend", "geometric", "linear", "parabolic"]).multiple(false)))]
 struct Cli {
-    /// The backlight class device from sysfs to control. E.g. intel_backlight
-    #[clap(value_parser, long, display_order = 0)]
+    #[clap(subcommand)]
+    action: Action,
+
+    /// The backlight class device from sysfs to act on. E.g. intel_backlight
+    /// If no device name is supplied and unless any other related flag is set
+    /// licht will attempt to discover a backlight device in sysfs.
+    #[clap(value_parser, long, display_order = 0, global(true))]
     device_name: Option<String>,
+}
 
-    /// The step used by the chosen stepping. By default it's +-% on the parabolic curve x^2 but
-    /// could be a factor or a raw value. See the chosen stepping for details.
-    #[clap(value_parser, allow_hyphen_values(true))]
-    step: Option<i32>,
+#[derive(clap::Subcommand)]
+enum Action {
+    Get {
+        #[clap(subcommand)]
+        mode: GetMode
 
-    /// Simply adds the raw <STEP> value onto the raw current brightness value
-    #[clap(value_parser, name = "linear", long, display_order = 1)]
-    linear_arg: bool,
-    #[clap(skip)]
-    linear: Option<stepping::Linear>,
+    }, 
+    Set {
+        #[clap(subcommand)]
+        mode: SetMode,
 
-    /// Multiplies the current brightness value by <STEP>%
-    #[clap(value_parser, name = "geometric", long, display_order = 2)]
-    geometric_arg: bool,
-    #[clap(skip)]
-    geometric: Option<stepping::Geometric>,
+        /// Clamps the brightness to a minimum value.
+        #[clap(value_parser, long, default_value("0"), display_order = 5)]
+        min_brightness: usize,
 
-    /// Maps the current brightness value onto a the parabolic function
-    /// x^exponent and advances it <STEP>% on that function.
-    #[clap(value_parser, long, value_name = "EXPONENT", display_order = 3)]
-    parabolic: Option<stepping::Parabolic>,
+        /// Use verbose output
+        #[clap(value_parser, long, display_order = 6)]
+        verbose: bool,
 
+        /// Do not write the new brightness value to the backlight device.
+        /// dry-run implies verbose
+        #[clap(value_parser, long, display_order = 7)]
+        dry_run: bool,
+    }, 
+}
+
+#[derive(clap::Subcommand)]
+enum SetMode {
+    /// Sets the current brightness value to <STEP>%
+    Absolute {
+        #[clap(flatten)]
+        absolute: stepping::Absolute
+    },
+    /// Adds <STEP>% to the current brightness value
+    Linear {
+        #[clap(flatten)]
+        linear: stepping::Linear
+    },
     /// Maps the current birghtness value onto the function
     /// ratio*x^a + (1-m) * (1-(1-x)^(1/b) and advances it <STEP>% on that function.
     /// Recommended parameters for this function are ratio = 0.75, a = 1.8, b = 2.2.
     /// The argument for that would be --blend (0.75,1.8,2.2)
     /// Enter the above function into e.g. desmos or geogebra and
     /// change the parameters to your liking.
-    #[clap(value_parser, long, value_name = "(RATIO,A,B)", display_order = 4)]
-    blend: Option<stepping::Blend>,
-
-    /// Simply sets the current brightness value to <STEP>
-    #[clap(value_parser, name = "absolute", long, display_order = 1)]
-    absolute_arg: bool,
-    #[clap(skip)]
-    absolute: Option<stepping::Absolute>,
-
-    /// Clamps the brightness to a minimum value.
-    #[clap(value_parser, long, default_value("0"), display_order = 5)]
-    min_brightness: usize,
-
-    /// Use verbose output
-    #[clap(value_parser, long, display_order = 6)]
-    verbose: bool,
-
-    /// Do not write the new brightness value to the backlight device.
-    /// dry-run implies verbose
-    #[clap(value_parser, long, display_order = 7)]
-    dry_run: bool,
-
-    /// List availble backlight devices
-    #[clap(value_parser, long, exclusive(true), display_order = 8)]
-    list: bool,
+    Blend {
+        #[clap(flatten)]
+        blend: stepping::Blend
+    },
+    /// Multiplies the current brightness value by <STEP>%
+    Geometric {
+        #[clap(flatten)]
+        geometric: stepping::Geometric
+    },
+    /// Maps the current brightness value onto a the parabolic function
+    /// x^exponent and advances it <STEP>% on that function.
+    Parabolic {
+        #[clap(flatten)]
+        parabolic: stepping::Parabolic
+    }
 }
 
-impl Cli {
+impl SetMode {
     fn get_stepping(&self) -> &dyn Stepping {
-        const DEFAULT: stepping::Parabolic = stepping::Parabolic { exponent: 2.0f32 };
-        self.linear
-            .as_ref()
-            .map(|s| s as &dyn Stepping)
-            .or_else(|| self.geometric.as_ref().map(|s| s as &dyn Stepping))
-            .or_else(|| self.parabolic.as_ref().map(|s| s as &dyn Stepping))
-            .or_else(|| self.blend.as_ref().map(|s| s as &dyn Stepping))
-            .or_else(|| self.absolute.as_ref().map(|s| s as &dyn Stepping))
-            .unwrap_or(&DEFAULT)
+        match &self {
+            Self::Absolute { absolute } => absolute,
+            Self::Linear { linear } => linear,
+            Self::Blend { blend } => blend,
+            Self::Geometric { geometric } => geometric,
+            Self::Parabolic { parabolic } => parabolic
+        }
     }
+}
+
+#[derive(clap::Subcommand)]
+enum GetMode {
+    /// List availble backlight devices
+    List,
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut cli = Cli::parse();
-    if cli.dry_run {
-        cli.verbose = true;
-    }
-    if cli.linear_arg {
-        cli.linear = Some(stepping::Linear);
-    }
-    if cli.geometric_arg {
-        cli.geometric = Some(stepping::Geometric);
-    }
-    if cli.absolute_arg {
-        cli.absolute = Some(stepping::Absolute);
-    }
-
-    if cli.verbose {
-        let logger = SimpleLogger::new()
-            .with_level(log::LevelFilter::Info)
-            .without_timestamps()
-            .init();
-        if logger.is_err() {
-            eprint!("Error: logger for verbose mode failed to init.");
-        }
-    }
-
-    if cli.list {
-        for device_path in Backlight::discover() {
-            println!("{}", Backlight::from_path(&device_path)?);
-        }
-    } else {
-        let mut backlight = if let Some(device_name) = &cli.device_name {
-            Backlight::from_name(device_name)
-        } else {
-            log::info!("No device name supplied, attempting to discover backlight devices.");
-            let devices = Backlight::discover();
-            if let Some(device_path) = devices.first() {
-                log::info!("Success! Using first device found.");
-                Backlight::from_path(device_path)
-            } else {
-                anyhow::bail!("No backlight device supplied or found")
+    let cli = Cli::parse();
+    match cli.action {
+        Action::Get { mode } => {
+            match mode {
+                GetMode::List => {
+                    for device_path in Backlight::discover() {
+                        println!("{}", Backlight::from_path(&device_path)?);
+                    }
+                },
             }
-        }?;
-        log::info!("{}", backlight);
-        backlight.calculate_brightness(
-            cli.step.context("No step value provided")?,
-            cli.get_stepping(),
-            cli.min_brightness);
+        },
+        Action::Set { mode, min_brightness, mut verbose, dry_run } => {
+            if dry_run {
+                verbose = true;
+            }
 
-        if !cli.dry_run {
-            backlight.write()?;
-        }
+            if verbose {
+                let logger = SimpleLogger::new()
+                    .with_level(log::LevelFilter::Info)
+                    .without_timestamps()
+                    .init();
+                if logger.is_err() {
+                    eprint!("Error: logger for verbose mode failed to init.");
+                }
+            }
+
+            let mut backlight = if let Some(device_name) = &cli.device_name {
+                Backlight::from_name(device_name)
+            } else {
+                log::info!("No device name supplied, attempting to discover backlight devices.");
+                let devices = Backlight::discover();
+                if let Some(device_path) = devices.first() {
+                    log::info!("Success! Using first device found.");
+                    Backlight::from_path(device_path)
+                } else {
+                    anyhow::bail!("No backlight device supplied or found")
+                }
+            }?;
+
+            log::info!("{}", backlight);
+            backlight.calculate_brightness(
+                mode.get_stepping(),
+                min_brightness);
+
+            if !dry_run {
+                backlight.write()?;
+            }
+        },
     }
-
     Ok(())
 }

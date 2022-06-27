@@ -1,9 +1,12 @@
 use super::Stepping;
 
-pub struct Absolute;
+#[derive(clap::Args)]
+pub struct Absolute {
+    value: usize
+}
 
 impl Stepping for Absolute {
-    fn calculate(&self, step: i32, _: usize, _: usize) -> f32 {
-        step as f32
+    fn calculate(&self, _: usize, _: usize) -> f32 {
+        self.value as f32
     }
 }

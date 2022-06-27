@@ -1,16 +1,16 @@
 use super::Stepping;
-use regex::Regex;
 
-#[derive(Clone)]
+#[derive(clap::Args)]
 pub struct Blend {
     pub ratio: f32,
     pub a: f32,
     pub b: f32,
+    pub step: i32
 }
 
 impl Stepping for Blend {
-    fn calculate(&self, step: i32, cur: usize, max: usize) -> f32 {
-        let step = step as f32 / 100.0f32;
+    fn calculate(&self, cur: usize, max: usize) -> f32 {
+        let step = self.step as f32 / 100.0f32;
         let f = |x: f32| x.powf(self.a);
         let f_inverse = |x: f32| x.powf(self.a.recip());
         let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
@@ -43,28 +43,5 @@ impl Stepping for Blend {
 
         let new_x = (cur_x + step).clamp(0.0f32, 1.0f32);
         h(new_x)
-    }
-}
-
-impl std::str::FromStr for Blend {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let regex = Regex::new(r"\(.*,.*,.*\)").unwrap();
-        if !regex.is_match(s) {
-            anyhow::bail!("Blend parameters malformed")
-        }
-
-        let s = &s[1..s.len() - 1];
-        let nums: Vec<&str> = s.split(',').collect();
-        if nums.len() != 3 {
-            anyhow::bail!("Blend parameters malformed: too many paramters")
-        }
-
-        let ratio = nums[0].parse::<f32>()?;
-        let a = nums[1].parse::<f32>()?;
-        let b = nums[2].parse::<f32>()?;
-
-        Ok(Self { ratio, a, b })
     }
 }

@@ -1,9 +1,12 @@
 use super::Stepping;
 
-pub struct Linear;
+#[derive(clap::Args)]
+pub struct Linear {
+    step: i32
+}
 
 impl Stepping for Linear {
-    fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {
-        cur as f32 + step as f32
+    fn calculate(&self, cur: usize, _: usize) -> f32 {
+        cur as f32 + self.step as f32
     }
 }

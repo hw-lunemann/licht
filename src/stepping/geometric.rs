@@ -1,10 +1,13 @@
 use super::Stepping;
 
-pub struct Geometric;
+#[derive(clap::Args)]
+pub struct Geometric {
+    step: i32
+}
 
 impl Stepping for Geometric {
-    fn calculate(&self, step: i32, cur: usize, _: usize) -> f32 {
-        let step = step as f32 / 100.0f32;
+    fn calculate(&self, cur: usize, _: usize) -> f32 {
+        let step = self.step as f32 / 100.0f32;
         cur as f32 + cur as f32 * step
     }
 }
