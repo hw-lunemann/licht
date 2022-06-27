@@ -1,4 +1,3 @@
-use anyhow::Context;
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
@@ -94,12 +93,27 @@ impl SetMode {
 
 #[derive(clap::Subcommand)]
 enum GetMode {
+    Info,
     /// List availble backlight devices
     List,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+    let mut backlight = if let Some(device_name) = &cli.device_name {
+        Backlight::from_name(device_name)
+    } else {
+        log::info!("No device name supplied, attempting to discover backlight devices.");
+        let devices = Backlight::discover();
+        if let Some(device_path) = devices.first() {
+            log::info!("Success! Using first device found.");
+            Backlight::from_path(device_path)
+        } else {
+            anyhow::bail!("No backlight device supplied or found")
+        }
+    }?;
+
     match cli.action {
         Action::Get { mode } => match mode {
             GetMode::List => {
@@ -107,6 +121,9 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", Backlight::from_path(&device_path)?);
                 }
             }
+            GetMode::Info => {
+                println!("{}", backlight);          
+            },
         },
         Action::Set {
             mode,
@@ -125,23 +142,11 @@ fn main() -> anyhow::Result<()> {
                     .init();
                 if logger.is_err() {
                     eprint!("Error: logger for verbose mode failed to init.");
+                } else {
+                    log::info!("{}", backlight);
                 }
             }
 
-            let mut backlight = if let Some(device_name) = &cli.device_name {
-                Backlight::from_name(device_name)
-            } else {
-                log::info!("No device name supplied, attempting to discover backlight devices.");
-                let devices = Backlight::discover();
-                if let Some(device_path) = devices.first() {
-                    log::info!("Success! Using first device found.");
-                    Backlight::from_path(device_path)
-                } else {
-                    anyhow::bail!("No backlight device supplied or found")
-                }
-            }?;
-
-            log::info!("{}", backlight);
             backlight.calculate_brightness(mode.get_stepping(), min_brightness);
 
             if !dry_run {
