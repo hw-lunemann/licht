@@ -2,7 +2,7 @@ use super::Stepping;
 
 #[derive(clap::Args)]
 pub struct Absolute {
-    value: usize
+    value: usize,
 }
 
 impl Stepping for Absolute {

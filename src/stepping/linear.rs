@@ -2,7 +2,7 @@ use super::Stepping;
 
 #[derive(clap::Args)]
 pub struct Linear {
-    step: i32
+    step: i32,
 }
 
 impl Stepping for Linear {

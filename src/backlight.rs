@@ -25,7 +25,7 @@ impl Backlight {
         Ok(Self {
             brightness: Self::read_to_usize(device_path.join("brightness"))?,
             max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
-            device_path
+            device_path,
         })
     }
 
@@ -33,7 +33,7 @@ impl Backlight {
         Ok(Self {
             brightness: Self::read_to_usize(device_path.join("brightness"))?,
             max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
-            device_path: device_path.to_owned()
+            device_path: device_path.to_owned(),
         })
     }
 
@@ -42,7 +42,8 @@ impl Backlight {
     }
 
     pub fn calculate_brightness(&mut self, stepping: &dyn Stepping, min: usize) {
-        let new_brightness = stepping.calculate(self.brightness, self.max_brightness)
+        let new_brightness = stepping
+            .calculate(self.brightness, self.max_brightness)
             .clamp(min as f32, self.max_brightness as f32);
 
         log::info!(
@@ -64,7 +65,8 @@ impl Backlight {
     pub fn discover() -> Vec<PathBuf> {
         let mut devices = Vec::new();
         if let Ok(read_dir) = class_path().read_dir() {
-            read_dir.flatten()
+            read_dir
+                .flatten()
                 .for_each(|dir_entry| devices.push(dir_entry.path()))
         }
 
@@ -74,11 +76,13 @@ impl Backlight {
 
 impl std::fmt::Display for Backlight {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-               "Device: {}\nCurrent brightness: {} ({:.0}%)\nMax brightness: {}", 
-               self.device_path.display(), 
-               self.brightness, 
-               self.get_percent() * 100.0f32, 
-               self.max_brightness)
+        write!(
+            f,
+            "Device: {}\nCurrent brightness: {} ({:.0}%)\nMax brightness: {}",
+            self.device_path.display(),
+            self.brightness,
+            self.get_percent() * 100.0f32,
+            self.max_brightness
+        )
     }
 }

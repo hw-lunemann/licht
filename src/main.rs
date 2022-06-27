@@ -24,9 +24,8 @@ struct Cli {
 enum Action {
     Get {
         #[clap(subcommand)]
-        mode: GetMode
-
-    }, 
+        mode: GetMode,
+    },
     Set {
         #[clap(subcommand)]
         mode: SetMode,
@@ -43,7 +42,7 @@ enum Action {
         /// dry-run implies verbose
         #[clap(value_parser, long, display_order = 7)]
         dry_run: bool,
-    }, 
+    },
 }
 
 #[derive(clap::Subcommand)]
@@ -51,12 +50,12 @@ enum SetMode {
     /// Sets the current brightness value to <STEP>%
     Absolute {
         #[clap(flatten)]
-        absolute: stepping::Absolute
+        absolute: stepping::Absolute,
     },
     /// Adds <STEP>% to the current brightness value
     Linear {
         #[clap(flatten)]
-        linear: stepping::Linear
+        linear: stepping::Linear,
     },
     /// Maps the current birghtness value onto the function
     /// ratio*x^a + (1-m) * (1-(1-x)^(1/b) and advances it <STEP>% on that function.
@@ -66,19 +65,19 @@ enum SetMode {
     /// change the parameters to your liking.
     Blend {
         #[clap(flatten)]
-        blend: stepping::Blend
+        blend: stepping::Blend,
     },
     /// Multiplies the current brightness value by <STEP>%
     Geometric {
         #[clap(flatten)]
-        geometric: stepping::Geometric
+        geometric: stepping::Geometric,
     },
     /// Maps the current brightness value onto a the parabolic function
     /// x^exponent and advances it <STEP>% on that function.
     Parabolic {
         #[clap(flatten)]
-        parabolic: stepping::Parabolic
-    }
+        parabolic: stepping::Parabolic,
+    },
 }
 
 impl SetMode {
@@ -88,7 +87,7 @@ impl SetMode {
             Self::Linear { linear } => linear,
             Self::Blend { blend } => blend,
             Self::Geometric { geometric } => geometric,
-            Self::Parabolic { parabolic } => parabolic
+            Self::Parabolic { parabolic } => parabolic,
         }
     }
 }
@@ -102,16 +101,19 @@ enum GetMode {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.action {
-        Action::Get { mode } => {
-            match mode {
-                GetMode::List => {
-                    for device_path in Backlight::discover() {
-                        println!("{}", Backlight::from_path(&device_path)?);
-                    }
-                },
+        Action::Get { mode } => match mode {
+            GetMode::List => {
+                for device_path in Backlight::discover() {
+                    println!("{}", Backlight::from_path(&device_path)?);
+                }
             }
         },
-        Action::Set { mode, min_brightness, mut verbose, dry_run } => {
+        Action::Set {
+            mode,
+            min_brightness,
+            mut verbose,
+            dry_run,
+        } => {
             if dry_run {
                 verbose = true;
             }
@@ -140,14 +142,12 @@ fn main() -> anyhow::Result<()> {
             }?;
 
             log::info!("{}", backlight);
-            backlight.calculate_brightness(
-                mode.get_stepping(),
-                min_brightness);
+            backlight.calculate_brightness(mode.get_stepping(), min_brightness);
 
             if !dry_run {
                 backlight.write()?;
             }
-        },
+        }
     }
     Ok(())
 }

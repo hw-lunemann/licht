@@ -5,7 +5,7 @@ pub struct Blend {
     pub ratio: f32,
     pub a: f32,
     pub b: f32,
-    pub step: i32
+    pub step: i32,
 }
 
 impl Stepping for Blend {

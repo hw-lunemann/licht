@@ -1,14 +1,14 @@
-mod linear;
+mod absolute;
 mod blend;
 mod geometric;
+mod linear;
 mod parabolic;
-mod absolute;
 
-pub use linear::Linear;
+pub use absolute::Absolute;
 pub use blend::Blend;
 pub use geometric::Geometric;
+pub use linear::Linear;
 pub use parabolic::Parabolic;
-pub use absolute::Absolute;
 
 pub trait Stepping {
     fn calculate(&self, cur: usize, max: usize) -> f32;
