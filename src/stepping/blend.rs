@@ -5,6 +5,7 @@ pub struct Blend {
     pub ratio: f32,
     pub a: f32,
     pub b: f32,
+    #[clap(allow_hyphen_values(true))]
     pub step: i32,
 }
 

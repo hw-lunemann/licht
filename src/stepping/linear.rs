@@ -2,6 +2,7 @@ use super::Stepping;
 
 #[derive(clap::Args)]
 pub struct Linear {
+    #[clap(allow_hyphen_values(true))]
     step: i32,
 }
 
