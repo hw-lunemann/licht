@@ -94,8 +94,11 @@ impl SetMode {
 #[derive(clap::Subcommand)]
 enum GetMode {
     Info {
+        #[clap(long)]
         name: bool,
+        #[clap(long)]
         brightness: bool,
+        #[clap(long)]
         max_brightness: bool,
     },
     /// List availble backlight devices
