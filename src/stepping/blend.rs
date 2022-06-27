@@ -2,11 +2,11 @@ use super::Stepping;
 
 #[derive(clap::Args)]
 pub struct Blend {
-    pub ratio: f32,
-    pub a: f32,
-    pub b: f32,
+    ratio: f32,
+    a: f32,
+    b: f32,
     #[clap(allow_hyphen_values(true))]
-    pub step: i32,
+    step: i32,
 }
 
 impl Stepping for Blend {
