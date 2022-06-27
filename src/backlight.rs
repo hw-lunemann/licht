@@ -41,6 +41,12 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
+    pub fn get_name(&self) -> &str {
+        self.device_path
+            .file_name().expect("Bug: device_path without directory name")
+            .to_str().expect("Invalid device name")
+    }
+
     pub fn calculate_brightness(&mut self, stepping: &dyn Stepping, min: usize) {
         let new_brightness = stepping
             .calculate(self.brightness, self.max_brightness)
