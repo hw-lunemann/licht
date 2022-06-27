@@ -93,7 +93,11 @@ impl SetMode {
 
 #[derive(clap::Subcommand)]
 enum GetMode {
-    Info,
+    Info {
+        name: bool,
+        brightness: bool,
+        max_brightness: bool,
+    },
     /// List availble backlight devices
     List,
 }
@@ -121,8 +125,20 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", Backlight::from_path(&device_path)?);
                 }
             }
-            GetMode::Info => {
-                println!("{}", backlight);          
+            GetMode::Info { name, brightness, max_brightness } => {
+                if !name && !brightness && !max_brightness {
+                    println!("{}", backlight);          
+                } else {
+                    if name {
+                        println!("{}", backlight.get_name());
+                    }
+                    if brightness {
+                        println!("{}", backlight.brightness);
+                    }
+                    if max_brightness {
+                        println!("{}", backlight.max_brightness);
+                    }
+                }
             },
         },
         Action::Set {
