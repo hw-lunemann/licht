@@ -36,6 +36,10 @@ enum Action {
         #[clap(value_parser, long, default_value("0"), display_order = 5)]
         min_brightness: usize,
 
+        /// Operate on all backlight devices
+        #[clap(long, conflicts_with("device_name"))]
+        all: bool,
+
         /// Use verbose output
         #[clap(value_parser, long, display_order = 6)]
         verbose: bool,
@@ -195,6 +199,7 @@ fn main() -> anyhow::Result<()> {
         Action::Set {
             mode,
             min_brightness,
+            all,
             mut verbose,
             dry_run,
         } => {
@@ -203,18 +208,17 @@ fn main() -> anyhow::Result<()> {
             }
 
             if verbose {
-                let logger = SimpleLogger::new()
-                    .with_level(log::LevelFilter::Info)
-                    .without_timestamps()
-                    .init();
-                if logger.is_err() {
-                    eprint!("Error: logger for verbose mode failed to init.");
-                } else {
-                    log::info!("{}", backlight);
-                }
+                log::info!("{}", backlight);
             }
 
-            backlight.calculate_brightness(mode.get_stepping(), min_brightness);
+            if all {
+                for mut backlight in backlights {
+                    backlight.calculate_brightness(mode.get_stepping(), min_brightness);
+                }
+            } else { 
+                backlight.calculate_brightness(mode.get_stepping(), min_brightness);
+            }
+
 
             if !dry_run {
                 backlight.write()?;
