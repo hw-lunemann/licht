@@ -18,7 +18,7 @@ struct Cli {
     /// The backlight class device from sysfs to act on. E.g. intel_backlight
     /// If no device name is supplied and unless any other related flag is set
     /// licht will attempt to discover a backlight device in sysfs.
-    #[clap(value_parser, long, display_order = 0, global(true))]
+    #[clap(value_parser, long, display_order = 0, global = true)]
     device_name: Option<String>,
 }
 
@@ -37,7 +37,7 @@ enum Action {
         min_brightness: usize,
 
         /// Operate on all backlight devices
-        #[clap(long, conflicts_with("device_name"))]
+        #[clap(long)]
         all: bool,
 
         /// Use verbose output
