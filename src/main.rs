@@ -100,6 +100,8 @@ enum GetMode {
         brightness: bool,
         #[clap(long)]
         max_brightness: bool,
+        #[clap(long)]
+        machine_readable: bool,
     },
     /// List availble backlight devices
     List,
@@ -128,7 +130,27 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", Backlight::from_path(&device_path)?);
                 }
             }
-            GetMode::Info { name, brightness, max_brightness } => {
+            GetMode::Info { name, brightness, max_brightness, machine_readable } => {
+                if machine_readable {
+                    if !name && !brightness && !max_brightness {
+                        print!("{},{},{},{:.0}%,{}", 
+                               backlight.get_name(), 
+                               backlight.get_class(), 
+                               backlight.brightness, 
+                               backlight.get_percent()*100.0f32,
+                               backlight.max_brightness);          
+                    } else {
+                        if name {
+                            print!("{}", backlight.get_name());
+                        }
+                        if brightness {
+                                print!("{}", backlight.brightness);
+                        }
+                        if max_brightness {
+                            print!("{}", backlight.max_brightness);
+                        }
+                    }
+                }
                 if !name && !brightness && !max_brightness {
                     println!("{}", backlight);          
                 } else {
@@ -136,7 +158,7 @@ fn main() -> anyhow::Result<()> {
                         println!("{}", backlight.get_name());
                     }
                     if brightness {
-                        println!("{}", backlight.brightness);
+                            println!("{}", backlight.brightness);
                     }
                     if max_brightness {
                         println!("{}", backlight.max_brightness);
