@@ -97,6 +97,8 @@ enum GetMode {
         #[clap(long)]
         name: bool,
         #[clap(long)]
+        class: bool,
+        #[clap(long)]
         brightness: bool,
         #[clap(long)]
         percent: bool,
@@ -132,7 +134,7 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", Backlight::from_path(&device_path)?);
                 }
             }
-            GetMode::Info { name, brightness, max_brightness, percent, machine_readable } => {
+            GetMode::Info { name, class, brightness, percent, max_brightness, machine_readable} => {
                 if machine_readable {
                     if !name && !brightness && !max_brightness {
                         print!("{},{},{},{:.0}%,{}", 
@@ -144,6 +146,9 @@ fn main() -> anyhow::Result<()> {
                     } else {
                         if name {
                             print!("{},", backlight.get_name());
+                        }
+                        if class {
+                            print!("{},", backlight.get_class());
                         }
                         if brightness {
                             print!("{},", backlight.brightness);
