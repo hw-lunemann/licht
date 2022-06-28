@@ -20,16 +20,6 @@ impl Backlight {
         text.replace('\n', "").parse().context("parse failure")
     }
 
-    pub fn from_name(name: &str) -> anyhow::Result<Self> {
-        let device_path = class_path().join(name);
-
-        Ok(Self {
-            brightness: Self::read_to_usize(device_path.join("brightness"))?,
-            max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
-            device_path,
-        })
-    }
-
     pub fn from_path(device_path: &Path) -> anyhow::Result<Self> {
         Ok(Self {
             brightness: Self::read_to_usize(device_path.join("brightness"))?,
@@ -76,13 +66,15 @@ impl Backlight {
         .context("writing brightness failed")
     }
 
-    pub fn discover() -> Vec<PathBuf> {
-        let mut devices = Vec::new();
-        if let Ok(read_dir) = class_path().read_dir() {
-            read_dir
-                .flatten()
-                .for_each(|dir_entry| devices.push(dir_entry.path()))
-        }
+    pub fn discover() -> anyhow::Result<Vec<Backlight>> {
+        let devices = class_path()
+            .read_dir()
+            .map(|read_dir| { 
+                read_dir
+                    .flatten()
+                    .filter_map(|dir_entry| Backlight::from_path(&dir_entry.path()).ok())
+                    .collect::<Vec<_>>() 
+            }).context("Couldn't read sysfs");
 
         devices
     }
