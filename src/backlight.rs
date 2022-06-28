@@ -41,6 +41,13 @@ impl Backlight {
         self.brightness as f32 / self.max_brightness as f32
     }
 
+    pub fn get_class(&self) -> &str {
+        self.device_path
+            .parent().expect("Device_path without class directory")
+            .file_name().expect("Device_path without class name")
+            .to_str().expect("Invalid class name")
+    }
+
     pub fn get_name(&self) -> &str {
         self.device_path
             .file_name().expect("Bug: device_path without directory name")
