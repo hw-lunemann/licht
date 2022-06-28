@@ -34,15 +34,20 @@ impl Backlight {
 
     pub fn get_class(&self) -> &str {
         self.device_path
-            .parent().expect("Device_path without class directory")
-            .file_name().expect("Device_path without class name")
-            .to_str().expect("Invalid class name")
+            .parent()
+            .expect("Device_path without class directory")
+            .file_name()
+            .expect("Device_path without class name")
+            .to_str()
+            .expect("Invalid class name")
     }
 
     pub fn get_name(&self) -> &str {
         self.device_path
-            .file_name().expect("Bug: device_path without directory name")
-            .to_str().expect("Invalid device name")
+            .file_name()
+            .expect("Bug: device_path without directory name")
+            .to_str()
+            .expect("Invalid device name")
     }
 
     pub fn calculate_brightness(&mut self, stepping: &dyn Stepping, min: usize) {
@@ -69,12 +74,13 @@ impl Backlight {
     pub fn discover() -> anyhow::Result<Vec<Backlight>> {
         let devices = class_path()
             .read_dir()
-            .map(|read_dir| { 
+            .map(|read_dir| {
                 read_dir
                     .flatten()
                     .filter_map(|dir_entry| Backlight::from_path(&dir_entry.path()).ok())
-                    .collect::<Vec<_>>() 
-            }).context("Couldn't read sysfs");
+                    .collect::<Vec<_>>()
+            })
+            .context("Couldn't read sysfs");
 
         devices
     }

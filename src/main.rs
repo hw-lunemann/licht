@@ -131,18 +131,19 @@ fn main() -> anyhow::Result<()> {
 
     let backlights = Backlight::discover()?;
 
-
     let mut backlight = if let Some(device_name) = &cli.device_name {
-        backlights.iter()
+        backlights
+            .iter()
             .find(|backlight| backlight.device_path.file_name().unwrap() == OsStr::new(device_name))
-            .context(format!("Could not find device with name \'{}\'", device_name))?
-
+            .context(format!(
+                "Could not find device with name \'{}\'",
+                device_name
+            ))?
     } else {
         log::info!("No device name supplied, choosing a device");
-        backlights
-            .first()
-            .context("No backlight devices found.")?
-    }.clone();
+        backlights.first().context("No backlight devices found.")?
+    }
+    .clone();
 
     match cli.action {
         Action::Get { mode } => match mode {
@@ -151,15 +152,24 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", device);
                 }
             }
-            GetMode::Info { name, class, brightness, percent, max_brightness, machine_readable} => {
+            GetMode::Info {
+                name,
+                class,
+                brightness,
+                percent,
+                max_brightness,
+                machine_readable,
+            } => {
                 if machine_readable {
                     if !name && !brightness && !max_brightness {
-                        print!("{},{},{},{:.0}%,{}", 
-                               backlight.get_name(), 
-                               backlight.get_class(), 
-                               backlight.brightness, 
-                               backlight.get_percent()*100.0f32,
-                               backlight.max_brightness);          
+                        print!(
+                            "{},{},{},{:.0}%,{}",
+                            backlight.get_name(),
+                            backlight.get_class(),
+                            backlight.brightness,
+                            backlight.get_percent() * 100.0f32,
+                            backlight.max_brightness
+                        );
                     } else {
                         if name {
                             print!("{},", backlight.get_name());
@@ -179,13 +189,13 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 if !name && !brightness && !max_brightness {
-                    println!("{}", backlight);          
+                    println!("{}", backlight);
                 } else {
                     if name {
                         println!("{}", backlight.get_name());
                     }
                     if brightness {
-                            println!("{}", backlight.brightness);
+                        println!("{}", backlight.brightness);
                     }
                     if percent {
                         println!("{:.0}%", backlight.get_percent() * 100.0f32);
@@ -194,7 +204,7 @@ fn main() -> anyhow::Result<()> {
                         println!("{}", backlight.max_brightness);
                     }
                 }
-            },
+            }
         },
         Action::Set {
             mode,
@@ -215,10 +225,9 @@ fn main() -> anyhow::Result<()> {
                 for mut backlight in backlights {
                     backlight.calculate_brightness(mode.get_stepping(), min_brightness);
                 }
-            } else { 
+            } else {
                 backlight.calculate_brightness(mode.get_stepping(), min_brightness);
             }
-
 
             if !dry_run {
                 backlight.write()?;
