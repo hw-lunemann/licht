@@ -1,3 +1,6 @@
+use std::ffi::OsStr;
+
+use anyhow::Context;
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
@@ -112,26 +115,36 @@ enum GetMode {
 }
 
 fn main() -> anyhow::Result<()> {
+    let logger = SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
+        .without_timestamps()
+        .init();
+    if logger.is_err() {
+        eprint!("Error: logger failed to init.");
+    }
+
     let cli = Cli::parse();
 
+    let backlights = Backlight::discover()?;
+
+
     let mut backlight = if let Some(device_name) = &cli.device_name {
-        Backlight::from_name(device_name)
+        backlights.iter()
+            .find(|backlight| backlight.device_path.file_name().unwrap() == OsStr::new(device_name))
+            .context(format!("Could not find device with name \'{}\'", device_name))?
+
     } else {
-        log::info!("No device name supplied, attempting to discover backlight devices.");
-        let devices = Backlight::discover();
-        if let Some(device_path) = devices.first() {
-            log::info!("Success! Using first device found.");
-            Backlight::from_path(device_path)
-        } else {
-            anyhow::bail!("No backlight device supplied or found")
-        }
-    }?;
+        log::info!("No device name supplied, choosing a device");
+        backlights
+            .first()
+            .context("No backlight devices found.")?
+    }.clone();
 
     match cli.action {
         Action::Get { mode } => match mode {
             GetMode::List => {
-                for device_path in Backlight::discover() {
-                    println!("{}", Backlight::from_path(&device_path)?);
+                for device in backlights {
+                    println!("{}", device);
                 }
             }
             GetMode::Info { name, class, brightness, percent, max_brightness, machine_readable} => {
