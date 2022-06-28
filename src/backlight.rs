@@ -7,6 +7,7 @@ fn class_path() -> &'static Path {
     Path::new("/sys/class/backlight/")
 }
 
+#[derive(Clone)]
 pub struct Backlight {
     pub brightness: usize,
     pub max_brightness: usize,
