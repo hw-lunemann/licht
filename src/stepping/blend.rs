@@ -17,17 +17,20 @@ impl Stepping for Blend {
         let cur_percent = cur / max;
 
         if cur == max && step > 0.0f32 {
-            return max
+            return max;
         }
         if cur == 0.0f32 && step < 0.0f32 {
-            return 0.0f32
+            return 0.0f32;
         }
 
         let f = |x: f32| x.powf(self.a);
         let f_inverse = |x: f32| x.powf(self.a.recip());
         let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
         let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b);
-        let h = |x: f32| self.ratio*x.powf(self.a) + (1.0f32-self.ratio)*(1.0f32-(1.0f32-x).powf(self.b.recip()));
+        let h = |x: f32| {
+            self.ratio * x.powf(self.a)
+                + (1.0f32 - self.ratio) * (1.0f32 - (1.0f32 - x).powf(self.b.recip()))
+        };
 
         let cur_f_inv = f_inverse(cur_percent);
         let cur_g_inv = g_inverse(cur_percent);
@@ -39,7 +42,7 @@ impl Stepping for Blend {
 
         loop {
             let diff = h(cur_x) - cur_percent;
-            if diff.abs() <= 1.0f32/max {
+            if diff.abs() <= 1.0f32 / max {
                 break;
             }
 
