@@ -11,3 +11,10 @@ anyhow = "1.0.58"                                   # Flexible concrete Error ty
 simple_logger = "2.1.0"     # A logger that prints all messages with a readable output format
 log = "0.4.17"             # A lightweight logging facade for Rust 
 regex = "1"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "bench"
+harness = false
