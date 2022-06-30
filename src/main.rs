@@ -219,13 +219,14 @@ fn main() -> anyhow::Result<()> {
                 }
             }
 
-            log::info!("{}", backlight);
 
             if all {
                 for mut backlight in backlights {
+                    log::info!("{}", backlight);
                     backlight.calculate_brightness(mode.get_stepping(), min_brightness);
                 }
             } else {
+                log::info!("{}", backlight);
                 backlight.calculate_brightness(mode.get_stepping(), min_brightness);
             }
 
