@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "3.2.5", features = ["derive"]}	# A simple to use, efficient, and full-featured Command Line Argument Parser
-anyhow = "1.0.58"                                   # Flexible concrete Error type built on std::error::Error
+clap = { version = "3.2", features = ["derive"]}	# A simple to use, efficient, and full-featured Command Line Argument Parser
+anyhow = "1.0"                                   # Flexible concrete Error type built on std::error::Error
 
 [dev-dependencies]
 criterion = "0.3"
