@@ -4,11 +4,15 @@ use anyhow::Context;
 use clap::Parser;
 use simple_logger::SimpleLogger;
 
+#[macro_use] mod verbose;
+
 mod backlight;
 use backlight::Backlight;
 
 mod stepping;
 use stepping::Stepping;
+
+
 
 #[derive(Parser)]
 struct Cli {
