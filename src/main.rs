@@ -2,7 +2,6 @@ use std::ffi::OsStr;
 
 use anyhow::Context;
 use clap::Parser;
-use simple_logger::SimpleLogger;
 
 #[macro_use] mod verbose;
 
@@ -11,8 +10,6 @@ use backlight::Backlight;
 
 mod stepping;
 use stepping::Stepping;
-
-
 
 #[derive(Parser)]
 struct Cli {
@@ -125,6 +122,8 @@ enum GetMode {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    verbose!("test!");
+
     let backlights = Backlight::discover()?;
 
     let mut backlight = if let Some(device_name) = &cli.device_name {
@@ -214,23 +213,16 @@ fn main() -> anyhow::Result<()> {
             }
 
             if verbose {
-                let logger = SimpleLogger::new()
-                    .with_level(log::LevelFilter::Info)
-                    .without_timestamps()
-                    .init();
-                if logger.is_err() {
-                    eprint!("Error: logger failed to init.");
-                }
+                verbose_enable!();
             }
-
 
             if all {
                 for mut backlight in backlights {
-                    log::info!("{}", backlight);
+                    verbose!("{}", backlight);
                     backlight.calculate_brightness(mode.get_stepping(), min_brightness);
                 }
             } else {
-                log::info!("{}", backlight);
+                verbose!("{}", backlight);
                 backlight.calculate_brightness(mode.get_stepping(), min_brightness);
             }
 

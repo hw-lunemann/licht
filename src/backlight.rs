@@ -55,7 +55,8 @@ impl Backlight {
             .calculate(self.brightness, self.max_brightness)
             .clamp(min as f32, self.max_brightness as f32);
 
-        log::info!(
+        
+        verbose!(
             "{}% -> {}%",
             (self.get_percent() * 100.0f32).round(),
             (new_brightness / self.max_brightness as f32 * 100.0f32).round()

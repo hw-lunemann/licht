@@ -16,7 +16,7 @@ impl Logger {
 
 #[macro_export]
 macro_rules! verbose {
-    ($($arg:expr)*) => {
+    ($($arg:tt)*) => {
         if unsafe { $crate::verbose::_LOGGER.is_enabled() } {
             println!($($arg)*);
         }
@@ -26,6 +26,6 @@ macro_rules! verbose {
 #[macro_export]
 macro_rules! verbose_enable {
     () => {
-        unsafe { $crate::verbose::_LOGGER.enabled = true }
+        unsafe { $crate::verbose::_LOGGER.enable() }
     };
 }
