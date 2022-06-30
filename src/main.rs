@@ -119,14 +119,6 @@ enum GetMode {
 }
 
 fn main() -> anyhow::Result<()> {
-    let logger = SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
-        .without_timestamps()
-        .init();
-    if logger.is_err() {
-        eprint!("Error: logger failed to init.");
-    }
-
     let cli = Cli::parse();
 
     let backlights = Backlight::discover()?;
@@ -140,7 +132,7 @@ fn main() -> anyhow::Result<()> {
                 device_name
             ))?
     } else {
-        log::info!("No device name supplied, choosing a device");
+        // "No device name supplied, choosing a device"
         backlights.first().context("No backlight devices found.")?
     }
     .clone();
@@ -218,8 +210,16 @@ fn main() -> anyhow::Result<()> {
             }
 
             if verbose {
-                log::info!("{}", backlight);
+                let logger = SimpleLogger::new()
+                    .with_level(log::LevelFilter::Info)
+                    .without_timestamps()
+                    .init();
+                if logger.is_err() {
+                    eprint!("Error: logger failed to init.");
+                }
             }
+
+            log::info!("{}", backlight);
 
             if all {
                 for mut backlight in backlights {
