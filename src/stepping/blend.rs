@@ -56,6 +56,12 @@ impl Stepping for Blend {
         }
 
         let new_x = (cur_x + step).clamp(0.0f32, 1.0f32);
+        if new_x == 1.0f32 {
+            return max;
+        }
+        if new_x == 0.0f32 {
+            return 0.0f32;
+        }
         h(new_x) * max
     }
 }
