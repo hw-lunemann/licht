@@ -23,9 +23,9 @@ impl Stepping for Blend {
             return 0.0f32;
         }
 
-        let f = |x: f32| x.powf(self.a);
+        let _f = |x: f32| x.powf(self.a);
         let f_inverse = |x: f32| x.powf(self.a.recip());
-        let g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
+        let _g = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b.recip());
         let g_inverse = |x: f32| 1.0f32 - (1.0f32 - x).powf(self.b);
         let h = |x: f32| {
             self.ratio * x.powf(self.a)
