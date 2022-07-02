@@ -35,7 +35,7 @@ impl Stepping for Blend {
         // this is often a good guess for high x
         let mut cur_x = self.ratio * f_inverse(cur) + (1.0f32 - self.ratio) * g_inverse(cur);
 
-        // this runs faster because simd
+        // this runs faster because simd, it saves a mulss instruction
         let h = |x: f32| {
             ((max as f32 * self.ratio * x.powf(self.a) 
               - max as f32 * (1.0f32 - self.ratio) * (1.0f32-x).powf(self.b.recip())) + 0.5f32) as i32
