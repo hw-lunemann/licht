@@ -3,8 +3,9 @@ use super::Stepping;
 #[derive(clap::Args)]
 pub struct Parabolic {
     #[clap(allow_hyphen_values(true))]
-    step: i32,
     exponent: f32,
+    #[clap(allow_hyphen_values(true))]
+    step: i32,
 }
 
 impl Stepping for Parabolic {
