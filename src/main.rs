@@ -153,7 +153,15 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", device);
                 }
             }
-            GetMode::Info { name, class, brightness, percent, max_brightness, everything, csv } => {
+            GetMode::Info {
+                name,
+                class,
+                brightness,
+                percent,
+                max_brightness,
+                everything,
+                csv,
+            } => {
                 if csv {
                     println!(
                         "{},{},{},{:.0}%,{}",
