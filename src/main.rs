@@ -113,7 +113,7 @@ enum GetMode {
         #[clap(long)]
         max_brightness: bool,
         #[clap(long, exclusive(true))]
-        all: bool,
+        everything: bool,
     },
     /// List availble backlight devices
     List,
@@ -150,21 +150,21 @@ fn main() -> anyhow::Result<()> {
                 brightness,
                 percent,
                 max_brightness,
-                all,
+                everything,
             } => {
-                if name || all {
+                if name || everything {
                     print!("{},", backlight.get_name());
                 }
-                if class || all {
+                if class || everything {
                     print!("{},", backlight.get_class());
                 }
-                if brightness || all {
+                if brightness || everything {
                     print!("{},", backlight.brightness);
                 }
-                if percent || all {
+                if percent || everything {
                     print!("{:.0}%,", backlight.get_percent() * 100.0f32);
                 }
-                if max_brightness || all {
+                if max_brightness || everything {
                     print!("{}", backlight.max_brightness);
                 }
             }
