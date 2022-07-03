@@ -102,6 +102,12 @@ impl SetMode {
 
 #[derive(clap::Subcommand)]
 enum GetMode {
+    #[clap(group(
+        clap::ArgGroup::new("info")
+            .multiple(true)
+            .required(true)
+            .args(&["name", "class", "brightness", "percent", "max-brightness", "everything", "csv"])
+    ))]
     Info {
         #[clap(long)]
         name: bool,
@@ -115,6 +121,8 @@ enum GetMode {
         max_brightness: bool,
         #[clap(long, exclusive(true))]
         everything: bool,
+        #[clap(long, exclusive(true))]
+        csv: bool,
     },
     /// List availble backlight devices
     List,
@@ -145,28 +153,28 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", device);
                 }
             }
-            GetMode::Info {
-                name,
-                class,
-                brightness,
-                percent,
-                max_brightness,
-                everything,
-            } => {
-                if name || everything {
-                    print!("{},", backlight.get_name());
-                }
-                if class || everything {
-                    print!("{},", backlight.get_class());
-                }
-                if brightness || everything {
-                    print!("{},", backlight.brightness);
-                }
-                if percent || everything {
-                    print!("{:.0}%,", backlight.get_percent() * 100.0f32);
-                }
-                if max_brightness || everything {
-                    print!("{}", backlight.max_brightness);
+            GetMode::Info { name, class, brightness, percent, max_brightness, everything, csv } => {
+                if csv {
+                    println!(
+                        "{},{},{},{:.0}%,{}",
+                        backlight.get_name(),
+                        backlight.get_class(),
+                        backlight.brightness,
+                        backlight.get_percent() * 100.0f32,
+                        backlight.max_brightness
+                    );
+                } else if everything {
+                    println!("{}", backlight);
+                } else if name {
+                    println!("{},", backlight.get_name());
+                } else if class {
+                    println!("{},", backlight.get_class());
+                } else if brightness {
+                    println!("{},", backlight.brightness);
+                } else if percent {
+                    println!("{:.0}%,", backlight.get_percent() * 100.0f32);
+                } else if max_brightness {
+                    println!("{}", backlight.max_brightness);
                 }
             }
         },
