@@ -183,22 +183,6 @@ fn main() -> anyhow::Result<()> {
                         }
                     }
                 }
-                if !name && !brightness && !max_brightness {
-                    println!("{}", backlight);
-                } else {
-                    if name {
-                        println!("{}", backlight.get_name());
-                    }
-                    if brightness {
-                        println!("{}", backlight.brightness);
-                    }
-                    if percent {
-                        println!("{:.0}%", backlight.get_percent() * 100.0f32);
-                    }
-                    if max_brightness {
-                        println!("{}", backlight.max_brightness);
-                    }
-                }
             }
         },
         Action::Set {
