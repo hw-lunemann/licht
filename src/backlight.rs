@@ -55,7 +55,7 @@ impl Backlight {
             .calculate(self.brightness, self.max_brightness)
             .clamp(min as f32, self.max_brightness as f32);
 
-        
+        verbose!("{}", self);
         verbose!(
             "{}% -> {}%",
             (self.get_percent() * 100.0f32).round(),

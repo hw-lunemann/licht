@@ -218,11 +218,9 @@ fn main() -> anyhow::Result<()> {
 
             if all {
                 for mut backlight in backlights {
-                    verbose!("{}", backlight);
                     backlight.calculate_brightness(mode.get_stepping(), min_brightness);
                 }
             } else {
-                verbose!("{}", backlight);
                 backlight.calculate_brightness(mode.get_stepping(), min_brightness);
             }
 
