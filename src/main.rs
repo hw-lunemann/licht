@@ -3,7 +3,8 @@ use std::ffi::OsStr;
 use anyhow::Context;
 use clap::Parser;
 
-#[macro_use] mod verbose;
+#[macro_use]
+mod verbose;
 
 mod backlight;
 use backlight::Backlight;
@@ -132,7 +133,7 @@ fn main() -> anyhow::Result<()> {
                 device_name
             ))?
     } else {
-        // "No device name supplied, choosing a device"
+        // "No device name supplied, choosing first device"
         backlights.first().context("No backlight devices found.")?
     }
     .clone();

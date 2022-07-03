@@ -1,7 +1,7 @@
 pub static mut _LOGGER: Logger = Logger { enabled: false };
 
 pub struct Logger {
-    enabled: bool
+    enabled: bool,
 }
 
 impl Logger {
