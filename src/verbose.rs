@@ -9,7 +9,7 @@ impl Logger {
         self.enabled = true;
     }
 
-    pub const fn is_enabled(&'static self) -> bool {
+    pub fn is_enabled(&'static self) -> bool {
         self.enabled
     }
 }
