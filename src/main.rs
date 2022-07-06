@@ -132,26 +132,11 @@ enum GetMode {
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    let backlights = Backlight::discover()?;
-
-    let mut backlight = if let Some(device_name) = &cli.device_name {
-        backlights
-            .iter()
-            .find(|backlight| backlight.device_path.file_name().unwrap() == OsStr::new(device_name))
-            .context(format!(
-                "Could not find device with name \'{}\'",
-                device_name
-            ))?
-    } else {
-        // "No device name supplied, choosing first device"
-        backlights.first().context("No backlight devices found.")?
-    }
-    .clone();
 
     match cli.action {
         Action::Get { mode } => match mode {
             GetMode::List => {
-                for device in backlights {
+                for device in Lights::discover_all()?.devices {
                     println!("{}", device);
                 }
             }
@@ -212,16 +197,28 @@ fn main() -> anyhow::Result<()> {
                 verbose_enable!();
             }
 
+            let lights = Lights::discover_all()?;
+
+            let mut chosen_devices = Vec::new();
+
             if all {
-                for mut backlight in backlights {
-                    backlight.calculate_brightness(mode.get_stepping(), min_brightness);
-                }
+                chosen_devices.extend(
+                    lights
+                        .devices
+                        .into_iter()
+                        .filter(|dev| matches!(dev.class, light::DeviceClass::Backlight)),
+                );
+            } else if let Some(device_name) = device_name {
+                chosen_devices.push(Light::from_name(&device_name)?);
             } else {
-                backlight.calculate_brightness(mode.get_stepping(), min_brightness);
+                chosen_devices.push(Light::default()?);
             }
 
-            if !dry_run {
-                backlight.write()?;
+            for mut device in chosen_devices {
+                device.calculate_brightness(mode.get_stepping(), min_brightness);
+                if dry_run {
+                    device.write()?;
+                }
             }
         }
     }
