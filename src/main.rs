@@ -1,13 +1,10 @@
-use std::ffi::OsStr;
-
-use anyhow::Context;
 use clap::Parser;
 
 #[macro_use]
 mod verbose;
 
-mod backlight;
-use backlight::Backlight;
+mod light;
+use light::{Light, Lights};
 
 mod stepping;
 use stepping::Stepping;
