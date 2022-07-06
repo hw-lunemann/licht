@@ -13,12 +13,6 @@ use stepping::Stepping;
 struct Cli {
     #[clap(subcommand)]
     action: Action,
-
-    /// The backlight class device from sysfs to act on. E.g. intel_backlight
-    /// If no device name is supplied and unless any other related flag is set
-    /// licht will attempt to discover a backlight device in sysfs.
-    #[clap(value_parser, long, display_order = 0, global = true)]
-    device_name: Option<String>,
 }
 
 #[derive(clap::Subcommand)]
@@ -31,13 +25,19 @@ enum Action {
         #[clap(subcommand)]
         mode: SetMode,
 
-        /// Clamps the brightness to a minimum value.
-        #[clap(value_parser, long, default_value("0"), display_order = 5)]
-        min_brightness: usize,
-
         /// Operate on all backlight devices
         #[clap(long)]
         all: bool,
+
+        /// The backlight or leds device from sysfs to act on. E.g. intel_backlight
+        /// If no device name is supplied and unless any other related flag is set
+        /// licht will attempt to discover a backlight device in sysfs.
+        #[clap(value_parser, long, display_order = 0, global = true)]
+        device_name: Option<String>,
+
+        /// Clamps the brightness to a minimum value.
+        #[clap(value_parser, long, default_value("0"), display_order = 5)]
+        min_brightness: usize,
 
         /// Use verbose output
         #[clap(value_parser, long, display_order = 6)]
@@ -120,6 +120,11 @@ enum GetMode {
         everything: bool,
         #[clap(long, exclusive(true))]
         csv: bool,
+        /// The backlight or leds device from sysfs to act on. E.g. intel_backlight
+        /// If no device name is supplied and unless any other related flag is set
+        /// licht will attempt to discover a backlight device in sysfs.
+        #[clap(value_parser, long, display_order = 0)]
+        device_name: Option<String>,
     },
     /// List availble backlight devices
     List,
@@ -158,28 +163,36 @@ fn main() -> anyhow::Result<()> {
                 max_brightness,
                 everything,
                 csv,
+                device_name,
             } => {
+                let device = if let Some(device_name) = device_name {
+                    Light::from_name(&device_name)?
+                } else {
+                    // "No device name supplied, choosing a backlight device"
+                    Light::default()?
+                };
+
                 if csv {
                     println!(
                         "{},{},{},{:.0}%,{}",
-                        backlight.get_name(),
-                        backlight.get_class(),
-                        backlight.brightness,
-                        backlight.get_percent() * 100.0f32,
-                        backlight.max_brightness
+                        device.get_name(),
+                        device.get_class(),
+                        device.brightness,
+                        device.get_percent() * 100.0f32,
+                        device.max_brightness
                     );
                 } else if everything {
-                    println!("{}", backlight);
+                    println!("{}", device);
                 } else if name {
-                    println!("{},", backlight.get_name());
+                    println!("{},", device.get_name());
                 } else if class {
-                    println!("{},", backlight.get_class());
+                    println!("{},", device.get_class());
                 } else if brightness {
-                    println!("{},", backlight.brightness);
+                    println!("{},", device.brightness);
                 } else if percent {
-                    println!("{:.0}%,", backlight.get_percent() * 100.0f32);
+                    println!("{:.0}%,", device.get_percent() * 100.0f32);
                 } else if max_brightness {
-                    println!("{}", backlight.max_brightness);
+                    println!("{}", device.max_brightness);
                 }
             }
         },
@@ -189,6 +202,7 @@ fn main() -> anyhow::Result<()> {
             all,
             mut verbose,
             dry_run,
+            device_name,
         } => {
             if dry_run {
                 verbose = true;
