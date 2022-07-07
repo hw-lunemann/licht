@@ -13,6 +13,10 @@ use stepping::Stepping;
 struct Cli {
     #[clap(subcommand)]
     action: Action,
+
+    /// Enable verbose output
+    #[clap(value_parser, long, global = true)]
+    verbose: bool,
 }
 
 #[derive(clap::Subcommand)]
@@ -38,10 +42,6 @@ enum Action {
         /// Clamps the brightness to a minimum value.
         #[clap(value_parser, long, default_value("0"), display_order = 5)]
         min_brightness: usize,
-
-        /// Use verbose output
-        #[clap(value_parser, long, display_order = 6)]
-        verbose: bool,
 
         /// Do not write the new brightness value to the backlight device.
         /// dry-run implies verbose
@@ -133,6 +133,10 @@ enum GetMode {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    if cli.verbose {
+        verbose_enable!();
+    }
+
     match cli.action {
         Action::Get { mode } => match mode {
             GetMode::List => {
@@ -153,7 +157,7 @@ fn main() -> anyhow::Result<()> {
                 let device = if let Some(device_name) = device_name {
                     Light::from_name(&device_name)?
                 } else {
-                    // "No device name supplied, choosing a backlight device"
+                    verbose!("No device given, choosing a backlight.");
                     Light::default()?
                 };
 
@@ -185,15 +189,10 @@ fn main() -> anyhow::Result<()> {
             mode,
             min_brightness,
             all,
-            mut verbose,
             dry_run,
             device_name,
         } => {
             if dry_run {
-                verbose = true;
-            }
-
-            if verbose {
                 verbose_enable!();
             }
 
@@ -210,6 +209,7 @@ fn main() -> anyhow::Result<()> {
             } else if let Some(device_name) = device_name {
                 chosen_devices.push(Light::from_name(&device_name)?);
             } else {
+                verbose!("No device given, choosing a backlight.");
                 chosen_devices.push(Light::default()?);
             }
 
