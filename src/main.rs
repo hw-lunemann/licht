@@ -4,7 +4,7 @@ use clap::Parser;
 mod verbose;
 
 mod light;
-use light::{Light, Lights};
+use light::Light;
 
 mod stepping;
 use stepping::Stepping;
@@ -136,7 +136,7 @@ fn main() -> anyhow::Result<()> {
     match cli.action {
         Action::Get { mode } => match mode {
             GetMode::List => {
-                for device in Lights::discover_all()?.devices {
+                for device in light::discover_all()? {
                     println!("{}", device);
                 }
             }
@@ -197,15 +197,11 @@ fn main() -> anyhow::Result<()> {
                 verbose_enable!();
             }
 
-            let lights = Lights::discover_all()?;
-
             let mut chosen_devices = Vec::new();
 
             if all {
                 chosen_devices.extend(
-                    lights
-                        .devices
-                        .into_iter()
+                    light::discover_all()?
                         .filter(|dev| matches!(dev.class, light::DeviceClass::Backlight)),
                 );
             } else if let Some(device_name) = device_name {

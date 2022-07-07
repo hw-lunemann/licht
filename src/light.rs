@@ -31,53 +31,31 @@ impl DeviceClass {
     }
 }
 
-pub struct Lights {
-    pub devices: Vec<Light>,
+pub fn discover_all() -> anyhow::Result<Box<dyn Iterator<Item = Light>>> {
+    match (discover(DeviceClass::Backlight), discover(DeviceClass::Led)) {
+        (Ok(backlights), Ok(leds)) => Ok(Box::new(backlights.chain(leds))),
+        (Ok(backlights), Err(_)) => Ok(Box::new(backlights)),
+        (Err(_), Ok(leds)) => Ok(Box::new(leds)),
+        (Err(_), Err(_)) => anyhow::bail!("Couldn't find any backlight or led devices."),
+    }
 }
 
-impl Lights {
-    pub fn discover_all() -> anyhow::Result<Self> {
-        let mut devices = Vec::new();
-        if let Ok(backlights) = Self::discover(DeviceClass::Backlight) {
-            devices.extend(backlights);
-        }
-        if let Ok(leds) = Self::discover(DeviceClass::Led) {
-            devices.extend(leds);
-        }
+pub fn discover_backlights() -> anyhow::Result<impl Iterator<Item = Light>> {
+    discover(DeviceClass::Backlight)
+}
 
-        if devices.is_empty() {
-            anyhow::bail!("Couldn't find any backlight or led devices.")
-        } else {
-            Ok(Self { devices })
-        }
-    }
+fn discover(class: DeviceClass) -> anyhow::Result<impl Iterator<Item = Light>> {
+    let devices = class
+        .path()
+        .read_dir()
+        .map(|read_dir| {
+            read_dir
+                .flatten()
+                .filter_map(|dir_entry| Light::from_path(&dir_entry.path()).ok())
+        })
+        .context("Couldn't read sysfs");
 
-    pub fn discover_backlights() -> anyhow::Result<Self> {
-        let mut devices = Vec::new();
-        if let Ok(backlights) = Self::discover(DeviceClass::Backlight) {
-            devices.extend(backlights);
-        }
-
-        if devices.is_empty() {
-            anyhow::bail!("Couldn't find any backlight.")
-        } else {
-            Ok(Self { devices })
-        }
-    }
-
-    fn discover(class: DeviceClass) -> anyhow::Result<impl Iterator<Item = Light>> {
-        let devices = class
-            .path()
-            .read_dir()
-            .map(|read_dir| {
-                read_dir
-                    .flatten()
-                    .filter_map(|dir_entry| Light::from_path(&dir_entry.path()).ok())
-            })
-            .context("Couldn't read sysfs");
-
-        devices
-    }
+    devices
 }
 
 #[derive(Clone)]
