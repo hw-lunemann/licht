@@ -201,9 +201,12 @@ fn main() -> anyhow::Result<()> {
 
             if all {
                 chosen_devices.extend(
-                    light::discover_all()?
+                    light::discover_backlights()?
                         .filter(|dev| matches!(dev.class, light::DeviceClass::Backlight)),
                 );
+                if chosen_devices.is_empty() {
+                    anyhow::bail!("No backlight devices were found!")
+                }
             } else if let Some(device_name) = device_name {
                 chosen_devices.push(Light::from_name(&device_name)?);
             } else {
