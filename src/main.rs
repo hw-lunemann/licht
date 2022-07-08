@@ -21,10 +21,35 @@ struct Cli {
 
 #[derive(clap::Subcommand)]
 enum Action {
-    Get {
-        #[clap(subcommand)]
-        mode: GetMode,
+    #[clap(group(
+        clap::ArgGroup::new("info-fields")
+            .multiple(true)
+            .required(true)
+            .args(&["name", "class", "brightness", "percent", "max-brightness", "everything", "csv"])
+    ))]
+    Info {
+        #[clap(long)]
+        name: bool,
+        #[clap(long)]
+        class: bool,
+        #[clap(long)]
+        brightness: bool,
+        #[clap(long)]
+        percent: bool,
+        #[clap(long)]
+        max_brightness: bool,
+        #[clap(long, exclusive(true))]
+        everything: bool,
+        #[clap(long, exclusive(true))]
+        csv: bool,
+        /// The backlight or leds device from sysfs to act on. E.g. intel_backlight
+        /// If no device name is supplied and unless any other related flag is set
+        /// licht will attempt to discover a backlight device in sysfs.
+        #[clap(value_parser, long, display_order = 0)]
+        device_names: Option<Vec<String>>,
     },
+    /// List availble backlight devices
+    List,
     Set {
         #[clap(subcommand)]
         mode: SetMode,
@@ -97,39 +122,6 @@ impl SetMode {
     }
 }
 
-#[derive(clap::Subcommand)]
-enum GetMode {
-    #[clap(group(
-        clap::ArgGroup::new("info")
-            .multiple(true)
-            .required(true)
-            .args(&["name", "class", "brightness", "percent", "max-brightness", "everything", "csv"])
-    ))]
-    Info {
-        #[clap(long)]
-        name: bool,
-        #[clap(long)]
-        class: bool,
-        #[clap(long)]
-        brightness: bool,
-        #[clap(long)]
-        percent: bool,
-        #[clap(long)]
-        max_brightness: bool,
-        #[clap(long, exclusive(true))]
-        everything: bool,
-        #[clap(long, exclusive(true))]
-        csv: bool,
-        /// The backlight or leds device from sysfs to act on. E.g. intel_backlight
-        /// If no device name is supplied and unless any other related flag is set
-        /// licht will attempt to discover a backlight device in sysfs.
-        #[clap(value_parser, long, display_order = 0)]
-        device_name: Option<String>,
-    },
-    /// List availble backlight devices
-    List,
-}
-
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -138,29 +130,17 @@ fn main() -> anyhow::Result<()> {
     }
 
     match cli.action {
-        Action::Get { mode } => match mode {
-            GetMode::List => {
-                for device in light::discover_all()? {
-                    println!("{}", device);
-                }
-            }
-            GetMode::Info {
-                name,
-                class,
-                brightness,
-                percent,
-                max_brightness,
-                everything,
-                csv,
-                device_name,
-            } => {
-                let device = if let Some(device_name) = device_name {
-                    Light::from_name(&device_name)?
-                } else {
-                    verbose!("No device given, choosing a backlight.");
-                    Light::default()?
-                };
-
+        Action::Info {
+            name,
+            class,
+            brightness,
+            percent,
+            max_brightness,
+            everything,
+            csv,
+            device_names,
+        } => {
+            let info = |device: Light| {
                 if csv {
                     println!(
                         "{},{},{},{:.0}%,{}",
@@ -184,7 +164,12 @@ fn main() -> anyhow::Result<()> {
                     println!("{}", device.max_brightness);
                 }
             }
-        },
+        }
+        Action::List => {
+            for device in light::discover_all()? {
+                println!("{}", device);
+            }
+        }
         Action::Set {
             mode,
             min_brightness,
