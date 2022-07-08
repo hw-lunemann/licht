@@ -62,7 +62,7 @@ enum Action {
         /// If no device name is supplied and unless any other related flag is set
         /// licht will attempt to discover a backlight device in sysfs.
         #[clap(value_parser, long, display_order = 0, global = true)]
-        device_name: Option<String>,
+        device_names: Option<Vec<String>>,
 
         /// Clamps the brightness to a minimum value.
         #[clap(value_parser, long, default_value("0"), display_order = 5)]
@@ -163,6 +163,18 @@ fn main() -> anyhow::Result<()> {
                 } else if max_brightness {
                     println!("{}", device.max_brightness);
                 }
+            };
+
+            if let Some(device_names) = device_names {
+                for device in device_names
+                    .into_iter()
+                    .map(|device_name| Light::from_name(&device_name))
+                {
+                    info(device?);
+                }
+            } else {
+                verbose!("No device given, choosing a backlight.");
+                info(Light::default()?);
             }
         }
         Action::List => {
@@ -175,7 +187,7 @@ fn main() -> anyhow::Result<()> {
             min_brightness,
             all,
             dry_run,
-            device_name,
+            device_names,
         } => {
             if dry_run {
                 verbose_enable!();
@@ -191,8 +203,13 @@ fn main() -> anyhow::Result<()> {
                 if chosen_devices.is_empty() {
                     anyhow::bail!("No backlight devices were found!")
                 }
-            } else if let Some(device_name) = device_name {
-                chosen_devices.push(Light::from_name(&device_name)?);
+            } else if let Some(device_name) = device_names {
+                for device in device_name
+                    .into_iter()
+                    .map(|device_name| Light::from_name(&device_name))
+                {
+                    chosen_devices.push(device?);
+                }
             } else {
                 verbose!("No device given, choosing a backlight.");
                 chosen_devices.push(Light::default()?);
