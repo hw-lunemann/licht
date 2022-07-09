@@ -56,7 +56,7 @@ fn discover(class: DeviceClass) -> anyhow::Result<impl Iterator<Item = Light>> {
     devices
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Light {
     pub brightness: usize,
     pub max_brightness: usize,
