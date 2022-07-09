@@ -25,7 +25,7 @@ enum Action {
         clap::ArgGroup::new("info-fields")
             .multiple(true)
             .required(true)
-            .args(&["name", "class", "brightness", "percent", "max-brightness", "everything", "csv"])
+            .args(&["name", "class", "brightness", "percent", "max-brightness", "everything", "everything-csv"])
     ))]
     Info {
         #[clap(long)]
@@ -41,7 +41,8 @@ enum Action {
         #[clap(long, exclusive(true))]
         everything: bool,
         #[clap(long, exclusive(true))]
-        csv: bool,
+        everything_csv: bool,
+
         /// The backlight or leds device from sysfs to act on. E.g. intel_backlight
         /// If no device name is supplied and unless any other related flag is set
         /// licht will attempt to discover a backlight device in sysfs.
@@ -137,11 +138,11 @@ fn main() -> anyhow::Result<()> {
             percent,
             max_brightness,
             everything,
-            csv,
+            everything_csv,
             device_names,
         } => {
             let info = |device: Light| {
-                if csv {
+                if everything_csv {
                     println!(
                         "{},{},{},{:.0}%,{}",
                         device.get_name(),
@@ -153,13 +154,13 @@ fn main() -> anyhow::Result<()> {
                 } else if everything {
                     println!("{}", device);
                 } else if name {
-                    println!("{},", device.get_name());
+                    println!("{}", device.get_name());
                 } else if class {
-                    println!("{},", device.get_class());
+                    println!("{}", device.get_class());
                 } else if brightness {
-                    println!("{},", device.brightness);
+                    println!("{}", device.brightness);
                 } else if percent {
-                    println!("{:.0}%,", device.get_percent() * 100.0f32);
+                    println!("{:.0}%", device.get_percent() * 100.0f32);
                 } else if max_brightness {
                     println!("{}", device.max_brightness);
                 }
