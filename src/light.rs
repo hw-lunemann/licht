@@ -20,13 +20,11 @@ impl DeviceClass {
         }
     }
 
-    fn from_path(path: &str) -> anyhow::Result<Self> {
-        if path == Self::BACKLIGHT_PATH {
-            Ok(Self::Backlight)
-        } else if path == Self::LED_PATH {
-            Ok(Self::Led)
-        } else {
-            Err(anyhow!("Path is not a sysfs class path"))
+    fn from_path(path: &Path) -> anyhow::Result<Self> {
+        match path.parent() {
+            Some(parent) if parent == Self::Backlight.path() => Ok(Self::Backlight),
+            Some(parent) if parent == Self::Led.path() => Ok(Self::Led),
+            _ => Err(anyhow!("Path is not a sysfs class path")),
         }
     }
 }
@@ -92,7 +90,7 @@ impl Light {
             brightness: Self::read_to_usize(device_path.join("brightness"))?,
             max_brightness: Self::read_to_usize(device_path.join("max_brightness"))?,
             device_path: device_path.to_owned(),
-            class: DeviceClass::from_path(&device_path.to_string_lossy())?,
+            class: DeviceClass::from_path(&device_path)?,
         })
     }
 
