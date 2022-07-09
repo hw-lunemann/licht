@@ -3,15 +3,15 @@ use std::path::{Path, PathBuf};
 
 use crate::Stepping;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum DeviceClass {
     Backlight,
     Led,
 }
 
 impl DeviceClass {
-    const BACKLIGHT_PATH: &'static str = "/sys/class/backlight/";
-    const LED_PATH: &'static str = "/sys/class/leds/";
+    const BACKLIGHT_PATH: &'static str = "/sys/class/backlight";
+    const LED_PATH: &'static str = "/sys/class/leds";
 
     fn path(&self) -> &'static Path {
         match self {
